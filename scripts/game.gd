@@ -18,8 +18,8 @@ const LANE_RIGHT := 1120.0
 const PULSE_LEFT := LANE_LEFT + (LANE_RIGHT - LANE_LEFT) / 3.0
 const PULSE_RIGHT := LANE_RIGHT - (LANE_RIGHT - LANE_LEFT) / 3.0
 
-const START_GOLD := 90
-const GOLD_PER_SEC := 12.0
+const START_GOLD := 110
+const GOLD_PER_SEC := 15.0
 const MAX_ALIVE := 8
 
 const START_MANA := 40.0
@@ -30,8 +30,14 @@ const SPELL_DAMAGE := 24
 const SPELL_SLOW := 0.45
 const SPELL_SLOW_TIME := 2.8
 
-const ENEMY_FIRST_SPAWN := 2.2
-const ENEMY_INTERVAL := 3.8
+# Pacing: ~60–90s before the blue crystal is in real danger if the player trains.
+const ENEMY_FIRST_SPAWN := 12.0
+const ENEMY_INTERVAL := 8.5
+const ENEMY_INTERVAL_MIN := 3.4
+const ENEMY_RAMP_AFTER := 60.0
+const ENEMY_EARLY_SOFT_CAP := 2
+const ENEMY_EARLY_STAT_SCALE := 0.55
+const ENEMY_EARLY_SPEED_SCALE := 0.82
 
 signal economy_changed(gold: int, mana: float, max_mana: float)
 signal toast_requested(text: String)
@@ -42,6 +48,8 @@ var mana: float = START_MANA
 var gold_bank: float = 0.0
 var is_over: bool = false
 var _enemy_spawns: int = 0
+var _late_spawns: int = 0
+var _match_time: float = 0.0
 
 var player_tower
 var enemy_tower
@@ -112,6 +120,7 @@ func _emit_initial_state() -> void:
 func _process(delta: float) -> void:
 	if is_over:
 		return
+	_match_time += delta
 	gold_bank += GOLD_PER_SEC * delta
 	if gold_bank >= 1.0:
 		var add := int(gold_bank)
@@ -184,17 +193,46 @@ func _on_enemy_timer() -> void:
 		return
 	if alive_count() >= MAX_ALIVE:
 		return
+	if _match_time < ENEMY_RAMP_AFTER and _enemy_alive_count() >= ENEMY_EARLY_SOFT_CAP:
+		return
 	_enemy_spawns += 1
-	_enemy_timer.wait_time = maxf(ENEMY_INTERVAL - _enemy_spawns * 0.06, 2.6)
-	var cycle := [
-		UnitScript.Kind.MELEE,
-		UnitScript.Kind.TANK,
-		UnitScript.Kind.RANGED,
-		UnitScript.Kind.MELEE,
-		UnitScript.Kind.SUPPORT,
-	]
-	var kind: int = cycle[(_enemy_spawns - 1) % cycle.size()]
+	_enemy_timer.wait_time = _next_enemy_interval()
+	var kind: int
+	if _match_time < ENEMY_RAMP_AFTER:
+		var early := [
+			UnitScript.Kind.RANGED,
+			UnitScript.Kind.SUPPORT,
+			UnitScript.Kind.MELEE,
+			UnitScript.Kind.RANGED,
+			UnitScript.Kind.SUPPORT,
+		]
+		kind = early[(_enemy_spawns - 1) % early.size()]
+	else:
+		var late := [
+			UnitScript.Kind.MELEE,
+			UnitScript.Kind.TANK,
+			UnitScript.Kind.RANGED,
+			UnitScript.Kind.MELEE,
+			UnitScript.Kind.SUPPORT,
+		]
+		kind = late[_late_spawns % late.size()]
+		_late_spawns += 1
 	_spawn_unit(UnitScript.Team.ENEMY, kind)
+
+
+func _next_enemy_interval() -> float:
+	if _match_time < ENEMY_RAMP_AFTER:
+		return ENEMY_INTERVAL
+	var u := clampf((_match_time - ENEMY_RAMP_AFTER) / 40.0, 0.0, 1.0)
+	return lerpf(ENEMY_INTERVAL, ENEMY_INTERVAL_MIN, u)
+
+
+func _enemy_alive_count() -> int:
+	var n := 0
+	for u in get_tree().get_nodes_in_group("enemy_units"):
+		if is_instance_valid(u) and not u.is_dead:
+			n += 1
+	return n
 
 
 func _spawn_unit(team: int, kind: int) -> void:
@@ -204,6 +242,11 @@ func _spawn_unit(team: int, kind: int) -> void:
 	var y := LANE_Y + randf_range(-14.0, 14.0)
 	var tower: Node2D = enemy_tower if team == UnitScript.Team.PLAYER else player_tower
 	unit.setup(team, kind, Vector2(x, y), tower)
+	if team == UnitScript.Team.ENEMY and _match_time < ENEMY_RAMP_AFTER:
+		unit.max_hp = maxi(8, int(round(float(unit.max_hp) * ENEMY_EARLY_STAT_SCALE)))
+		unit.hp = unit.max_hp
+		unit.damage = maxi(1, int(round(float(unit.damage) * ENEMY_EARLY_STAT_SCALE)))
+		unit.move_speed *= ENEMY_EARLY_SPEED_SCALE
 
 
 func _on_player_tower_down() -> void:
