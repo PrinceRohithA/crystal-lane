@@ -5,6 +5,7 @@ extends Node2D
 const UnitScript := preload("res://scripts/unit.gd")
 const TowerScript := preload("res://scripts/tower.gd")
 const FieldScript := preload("res://scripts/battlefield.gd")
+const PulseFxScript := preload("res://scripts/pulse_fx.gd")
 
 const LANE_Y := 492.0
 const PLAYER_SPAWN_X := 210.0
@@ -46,7 +47,7 @@ var player_tower
 var enemy_tower
 var hud: CanvasLayer
 var _units_root: Node2D
-var _spell_flash: float = 0.0
+var _pulse_fx
 var _enemy_timer: Timer
 
 
@@ -71,6 +72,10 @@ func _ready() -> void:
 	_units_root = Node2D.new()
 	_units_root.name = "Units"
 	add_child(_units_root)
+
+	_pulse_fx = PulseFxScript.new()
+	_pulse_fx.name = "TypePulse"
+	add_child(_pulse_fx)
 
 	player_tower = TowerScript.new()
 	add_child(player_tower)
@@ -114,9 +119,6 @@ func _process(delta: float) -> void:
 		gold_bank -= float(add)
 	mana = minf(mana + MANA_PER_SEC * delta, MAX_MANA)
 	economy_changed.emit(gold, mana, MAX_MANA)
-	if _spell_flash > 0.0:
-		_spell_flash = maxf(_spell_flash - delta, 0.0)
-		queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -159,8 +161,8 @@ func try_cast_type_pulse() -> void:
 		return
 	mana -= SPELL_COST
 	economy_changed.emit(gold, mana, MAX_MANA)
-	_spell_flash = 0.55
-	queue_redraw()
+	if _pulse_fx:
+		_pulse_fx.trigger()
 	var hit := 0
 	for u in get_tree().get_nodes_in_group("enemy_units"):
 		if not is_instance_valid(u) or u.is_dead:
@@ -227,19 +229,3 @@ func _end_match(player_won: bool) -> void:
 		return
 	is_over = true
 	match_over.emit(player_won)
-
-
-func _draw() -> void:
-	if _spell_flash <= 0.0:
-		return
-	var a := _spell_flash * 0.42
-	var x := PULSE_LEFT
-	var w := PULSE_RIGHT - PULSE_LEFT
-	draw_rect(Rect2(x, 430, w, 120), Color(0.62, 0.42, 0.95, a))
-	var y := 448.0
-	while y < 540.0:
-		var px := x + 8.0
-		while px < PULSE_RIGHT - 8.0:
-			draw_line(Vector2(px, y + 16), Vector2(px + 14, y), Color(0.85, 0.7, 1.0, a * 1.5), 2.0)
-			px += 28.0
-		y += 20.0

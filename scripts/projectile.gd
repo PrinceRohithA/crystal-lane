@@ -45,7 +45,7 @@ func _build_visual() -> void:
 	var glow := Color("c8e8ff") if team == 0 else Color("ffd0b8")
 	body.color = glow
 	body.polygon = PackedVector2Array([
-		Vector2(10, 0), Vector2(0, 5), Vector2(-8, 0), Vector2(0, -5),
+		Vector2(12, 0), Vector2(0, 6), Vector2(-10, 0), Vector2(0, -6),
 	])
 	add_child(body)
 	var core := Polygon2D.new()
