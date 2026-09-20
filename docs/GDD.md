@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.2 (Campaign locked · economy/wave tables folded · TesterBot paused)  
+**Version:** 1.3 (Roster + curriculum stamped · unlock soft-ceiling locked)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -303,7 +303,7 @@ Alive cap optional: **8 → 10 @ L10 → 12 @ L20**.
 
 Campaign ~6.5k coins one-clear. Optional ★ bonus +10%/+25%/+40%.
 
-Unlock troops 5–20: coins ≈ `40*1.4^k`. Deck slots stay level-gated (not coin).
+Unlock troops: soft-ceiling `min(900, round(40*1.22^k))` (see App E). Deck slots stay level-gated (not coin).
 
 ---
 
@@ -324,8 +324,100 @@ Fodder HP: `1.08^(L-1)`. Full L1/L10/L20 sketches in `research-campaign-v1.md`.
 
 **Boss telegraphs:** L10 Tidebound Colossus — 66%/33% phases, slam 1.2s, brings Strike/Ember. L20 Veilpyre Sovereign — 70%/40%/15%, mist→nova, enrage t>180s.
 
+
+---
+
+## Appendix E — Full roster (ResearchBot v1 · DocumentBot economy lock)
+
+**Source:** `research-roster-curriculum-v1.md`  
+**Must #1–4:** untouched (TesterBot paused).  
+**Names:** placeholders for CodeBot `UNITS_MANIFEST.md` mapping (CC0 art).
+
+### Economy resolution (LOCKED)
+
+Research’s raw `40*1.4^k` summed ≈ **21.7k** vs one-clear ≈ **6.5k**.  
+**DocumentBot lock:** soft-ceiling unlocks so a one-clear path can buy a meaningful Barracks path and still fund Mana Lab:
+
+`unlock_coin(k) = min(900, round(40 * 1.22^k))` for unlock order `k = 0…15`
+
+Approx: **40, 49, 60, 73, 89, 108, 132, 161, 197, 240, 293, 357, 436, 532, 649, 792** (sum ≈ **4.2k**).  
+★ bonuses / replays fund Mana Lab + optional full roster. Do **not** use uncapped 6223 late unlocks.
+
+### Player roster (20)
+
+| ID | Name | Type | Tier | Mana | Unlock |
+|----|------|------|------|------|--------|
+| P01 | Cragback | Stone | 1 | 12 | Start |
+| P02 | Knuckhorn | Strike | 1 | 12 | Start |
+| P03 | Veilray | Mind | 1 | 12 | Start |
+| P04 | Gleamlet | Bloom | 1 | 12 | Start |
+| P05 | Cindercurl | Ember | 2 | 17 | L2 |
+| P06 | Brinefin | Tide | 2 | 17 | L3 |
+| P07 | Petalward | Bloom | 2 | 17 | L4 |
+| P08 | Rivetfist | Strike | 2 | 17 | L5 |
+| P09 | Zephyrick | Gale | 3 | 25 | L6 |
+| P10 | Boulderbrace | Stone | 3 | 25 | L7 |
+| P11 | Cognivolt | Mind | 3 | 25 | L8 |
+| P12 | Duskneedle | Shade | 3 | 25 | L9 |
+| P13 | Pyremaw | Ember | 4 | 37 | L11 |
+| P14 | Abysshell | Tide | 4 | 37 | L12 |
+| P15 | Squallwing | Gale | 4 | 37 | L13 |
+| P16 | Bloomspire | Bloom | 4 | 37 | L14 |
+| P17 | Shatterjaw | Strike | 4 | 37 | L15 |
+| P18 | Gravemaw | Stone | 5 | 53 | L16 |
+| P19 | Nullwraith | Shade | 5 | 53 | L17 |
+| P20 | Astralith | Mind | 5 | 53 | L19 |
+
+L10 / L20 = deck slots (not troop unlocks). L18 = Lab / coin sink (no new troop).
+
+### Enemy roster (20) — first appearance
+
+| ID | Name | Type | Tier | First @ | Tag |
+|----|------|------|------|---------|-----|
+| E01 | Brawlgrub | Strike | 1 | L1 | Fodder |
+| E02 | Graveltusk | Stone | 1 | L1 | Fodder |
+| E03 | Sparkpup | Ember | 1 | L3 | Fodder |
+| E04 | Softspore | Bloom | 1 | L3 | Fodder |
+| E05 | Puddlefin | Tide | 1 | L4 | Fodder |
+| E06 | Gustling | Gale | 1 | L5 | Fodder |
+| E07 | Hexmite | Mind | 2 | L6 | Fodder |
+| E08 | Cinderbrute | Ember | 2 | L5 | Elite |
+| E09 | Ripcurrent | Tide | 2 | L6 | Elite |
+| E10 | Cleaverkin | Strike | 2 | L7 | Elite |
+| E11 | Bastionmite | Stone | 2 | L7 | Elite |
+| E12 | Gloomwisp | Shade | 2 | L8 | Fodder |
+| E13 | Vinewretch | Bloom | 3 | L9 | Elite |
+| E14 | Deepmaw | Tide | 3 | L9 | Elite |
+| E15 | Ashreaver | Ember | 3 | L11 | Elite |
+| E16 | Psychospike | Mind | 3 | L12 | Elite |
+| E17 | Cycloneer | Gale | 3 | L13 | Elite |
+| E18 | Nightpiercer | Shade | 4 | L14 | Elite |
+| E19 | Ironshard | Stone | 4 | L15 | Elite |
+| E20 | Ragemaw | Strike | 4 | L16 | Elite |
+
+**Bosses:** B01 Tidebound Colossus (L10 Tide/Stone) · B02 Veilpyre Sovereign (L20 Shade/Ember).
+
+---
+
+## Appendix F — L1–20 type-teaching curriculum
+
+**Wave counts:** follow **Appendix D** bands (late 5–6 waves, not 5–7).
+
+| Band | Levels | Teach |
+|------|--------|-------|
+| Force open | L1–2 | Strike/Stone fodder; starters |
+| World open | L3–6 | Ember → Tide → Gale tutors; first unlocks |
+| Force mid | L7–9 | Strike/Stone elites + Shade intro; pre-boss |
+| Boss A | **L10** | Tidebound Colossus; unlock deck slot 5 |
+| Mid-late | L11–14 | Ember/Tide heavy + Gale/Shade answers |
+| Synergy | L15–19 | Mixed flags; T4–T5 unlocks |
+| Finale | **L20** | Veilpyre Sovereign; unlock deck slot 6 |
+
+Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1.md` §3. CodeBot maps IDs → sprites in `UNITS_MANIFEST.md`.
+
 ## Changelog
 
+- **v1.3 (2026-09-20):** Roster 20+20+2 + L1–20 curriculum (App E/F); unlock soft-ceiling `min(900, round(40*1.22^k))` resolves 21.7k vs 6.5k; wave counts follow App D.
 - **v1.2 (2026-09-20):** Folded ResearchBot economy + wave-band tables (App C/D) for CodeBot P2/P3; TesterBot paused per user.
 - **v1.1.1 (2026-09-20):** TesterBot Must-build FAIL — Must #1 Verify→harden; #2–4 stay Implemented · pending QA (partial).
 - **v1.1 (2026-09-20):** Stamped ResearchBot campaign lock — 8 types (Stone…Shade), ×1.5/0.5 matrix, mana/coin formulas, PvZ anchors, boss names; retired in-match gold for campaign; P3 unblocked.
