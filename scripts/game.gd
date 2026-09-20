@@ -18,8 +18,9 @@ const LANE_RIGHT := 1120.0
 const PULSE_LEFT := LANE_LEFT + (LANE_RIGHT - LANE_LEFT) / 3.0
 const PULSE_RIGHT := LANE_RIGHT - (LANE_RIGHT - LANE_LEFT) / 3.0
 
-const START_GOLD := 110
-const GOLD_PER_SEC := 15.0
+# Early Grace harden (TesterBot Must #1): ≥45–60s before crystal threat.
+const START_GOLD := 130
+const GOLD_PER_SEC := 16.0
 const MAX_ALIVE := 8
 
 const START_MANA := 40.0
@@ -30,14 +31,13 @@ const SPELL_DAMAGE := 24
 const SPELL_SLOW := 0.45
 const SPELL_SLOW_TIME := 2.8
 
-# Pacing: ~60–90s before the blue crystal is in real danger if the player trains.
-const ENEMY_FIRST_SPAWN := 12.0
-const ENEMY_INTERVAL := 8.5
+const ENEMY_FIRST_SPAWN := 22.0
+const ENEMY_INTERVAL := 11.0
 const ENEMY_INTERVAL_MIN := 3.4
-const ENEMY_RAMP_AFTER := 60.0
-const ENEMY_EARLY_SOFT_CAP := 2
-const ENEMY_EARLY_STAT_SCALE := 0.55
-const ENEMY_EARLY_SPEED_SCALE := 0.82
+const ENEMY_RAMP_AFTER := 90.0
+const ENEMY_EARLY_SOFT_CAP := 1
+const ENEMY_EARLY_STAT_SCALE := 0.38
+const ENEMY_EARLY_SPEED_SCALE := 0.70
 
 const KILL_BOUNTY := 15
 const TUTOR_WINDOW := 42.0
@@ -82,6 +82,7 @@ func alive_count() -> int:
 
 func _ready() -> void:
 	randomize()
+	_reset_economy()
 	hud = $HUD
 	var field := FieldScript.new()
 	add_child(field)
@@ -118,6 +119,27 @@ func _ready() -> void:
 	call_deferred("_emit_initial_state")
 
 
+func _reset_economy() -> void:
+	# Fresh match every load — avoids sticky gold/mana across Restart.
+	gold = START_GOLD
+	mana = START_MANA
+	gold_bank = 0.0
+	is_over = false
+	_enemy_spawns = 0
+	_late_spawns = 0
+	_match_time = 0.0
+	_did_spawn = false
+	_did_pulse = false
+	_tutor_step = 0
+	_next_tutor_at = 1.6
+	_toast_busy_until = 0.0
+	_silence_bounty_toast = false
+
+
+func restart_match() -> void:
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+
 func _emit_initial_state() -> void:
 	economy_changed.emit(gold, mana, MAX_MANA)
 	if hud.has_method("set_player_hp"):
@@ -143,7 +165,7 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if is_over:
 		if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_R):
-			get_tree().reload_current_scene()
+			restart_match()
 		return
 	if event.is_action_pressed("spawn_tank"):
 		try_spawn_player(UnitScript.Kind.TANK)
