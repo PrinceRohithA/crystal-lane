@@ -21,7 +21,7 @@ class WasmHandler(http.server.SimpleHTTPRequestHandler):
         ".html": "text/html",
     }
 
-    def end_headers(self) -> None:
+    def end_headers(self) -> void:
         self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
