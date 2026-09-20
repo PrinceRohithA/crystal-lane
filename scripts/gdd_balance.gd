@@ -1,8 +1,8 @@
 extends RefCounted
 class_name GddBalance
 
-## GDD v1.1 stamped numbers. Do not invent alternates.
-## Chart is encoded here; combat wiring is P3.
+## GDD v1.3.1 stamped numbers. Do not invent alternates.
+## Chart encoded here; combat wiring is P3.
 
 enum Type { STN, STR, MND, BLM, EMB, TID, GAL, SHD }
 
@@ -78,5 +78,6 @@ static func level_coins(level: int) -> int:
 	return base
 
 
-static func unlock_coins(tier: int) -> int:
-	return int(round(50.0 * pow(1.35, float(maxi(tier, 1) - 1))))
+## Barracks unlock soft-ceiling (GDD v1.3): min(900, round(40*1.22^k))
+static func unlock_coins(k: int) -> int:
+	return mini(900, int(round(40.0 * pow(1.22, float(maxi(k, 0))))))
