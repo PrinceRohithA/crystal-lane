@@ -1,7 +1,7 @@
 # Downloads CC0 Kenney + MELLE art and exports the Godot 4.3 Web build
-# onto main. Used because git push to github.com is not authenticated in
-# the cloud agent, and GitHub MCP file tools UTF-8-corrupt binary blobs
-# (png/ttf/pck/wasm). 34MB index.wasm is under GitHub's 100MB file limit.
+# onto main. git push to github.com is unauthenticated in the cloud agent,
+# and GitHub MCP file tools UTF-8-corrupt binary blobs (png/ttf/pck/wasm).
+# index.wasm is ~34MB — under GitHub's 100MB file limit, too large for Contents API.
 name: Publish CC0 assets and Web export
 
 on:
@@ -28,9 +28,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Download CC0 Kenney and MELLE assets
         run: bash scripts/download_cc0_assets.sh
+
+      - name: Commit CC0 binaries to main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets
+          if git diff --cached --quiet; then
+            echo "No asset changes"
+          else
+            git commit -m "Add CC0 Kenney and MELLE art binaries"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
 
       - name: Install Godot 4.3 and Web export templates
         run: |
@@ -39,37 +55,62 @@ jobs:
           curl -L --fail --retry 4 -o /tmp/godot.zip \
             https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -o /tmp/godot.zip -d /tmp/godot
-          chmod +x /tmp/godot/Godot_v4.3-stable_linux.x86_64
+          GODOT_BIN="$(find /tmp/godot -type f -name 'Godot_v4.3-stable_linux*' | head -n1)"
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
           curl -L --fail --retry 4 -o /tmp/templates.tpz \
             https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
+          unzip -l /tmp/templates.tpz | head -40
           unzip -j /tmp/templates.tpz \
             'templates/version.txt' 'templates/web_*.zip' \
             -d "$HOME/.local/share/godot/export_templates/4.3.stable"
+          ls -lh "$HOME/.local/share/godot/export_templates/4.3.stable"
+          cat "$HOME/.local/share/godot/export_templates/4.3.stable/version.txt"
           test -f "$HOME/.local/share/godot/export_templates/4.3.stable/web_nothreads_release.zip"
+          "$GODOT_BIN" --version
 
       - name: Import resources and export Web
-        env:
-          GODOT_BIN: /tmp/godot/Godot_v4.3-stable_linux.x86_64
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --path . --import || true
-          bash export-web.sh
+          mkdir -p build/web
+          echo "Using $GODOT_BIN"
+          set +e
+          "$GODOT_BIN" --headless --verbose --path "$GITHUB_WORKSPACE" \
+            --export-release "Web" "$GITHUB_WORKSPACE/build/web/index.html" \
+            2>&1 | tee /tmp/godot-export.log
+          status=${PIPESTATUS[0]}
+          set -e
+          echo "Godot exit $status"
+          tail -n 80 /tmp/godot-export.log
+          if [[ "$status" -ne 0 ]]; then
+            mkdir -p build
+            cp /tmp/godot-export.log build/godot-export.log
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add build/godot-export.log
+            git commit -m "Save Godot Web export log from CI" || true
+            git pull --rebase origin main || true
+            git push origin HEAD:main || true
+            exit "$status"
+          fi
           test -f build/web/index.html
           test -f build/web/index.js
           test -f build/web/index.pck
           test -f build/web/index.wasm
-          ls -lh build/web assets/crystals assets/env assets/units assets/ui | head -80
+          ls -lh build/web
 
-      - name: Commit assets and Web build to main
+      - name: Commit Web build to main
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A assets build/web
+          git add -A build/web
           if git diff --cached --quiet; then
-            echo "No asset/web changes to commit"
+            echo "No web-build changes"
             exit 0
           fi
-          git commit -m "Add CC0 Kenney/MELLE assets and Godot 4.3 Web export"
+          git commit -m "Add Godot 4.3 Web export (html/js/pck/wasm)"
+          git pull --rebase origin main
           git push origin HEAD:main
