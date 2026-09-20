@@ -114,7 +114,6 @@ func _build_ui() -> void:
 		title.add_theme_font_override("font", _font_title)
 	root.add_child(title)
 
-	# Crystal HP — left blue, right red
 	var hp_left := _nine("res://assets/ui/panel.png", Vector2(16, 42), Vector2(268, 52))
 	root.add_child(hp_left)
 	_player_bar = _hp_bar("res://assets/ui/blue_bar.png", Vector2(28, 68), Vector2(244, 16))
@@ -210,6 +209,10 @@ func _build_ui() -> void:
 	hint.size = Vector2(980, 24)
 	root.add_child(hint)
 
+	var menu_btn := _make_button("Menu", Vector2(1180, 12), Vector2(80, 36), "res://assets/ui/grey_button_flat.png")
+	menu_btn.pressed.connect(func() -> void: GameState.go_main_menu())
+	root.add_child(menu_btn)
+
 	_end_panel = _nine("res://assets/ui/panel.png", Vector2(440, 220), Vector2(400, 220))
 	_end_panel.visible = false
 	root.add_child(_end_panel)
@@ -227,7 +230,12 @@ func _build_ui() -> void:
 	_end_panel.add_child(end_body)
 
 	var restart := _make_button("Play again", Vector2(120, 130), Vector2(160, 44), "res://assets/ui/green_button_gloss.png")
-	restart.pressed.connect(func() -> void: get_tree().reload_current_scene())
+	restart.pressed.connect(func() -> void:
+		if game and game.has_method("restart_match"):
+			game.restart_match()
+		else:
+			get_tree().change_scene_to_file("res://scenes/main.tscn")
+	)
 	_end_panel.add_child(restart)
 
 
