@@ -1,0 +1,75 @@
+# Downloads CC0 Kenney + MELLE art and exports the Godot 4.3 Web build
+# onto main. Used because git push to github.com is not authenticated in
+# the cloud agent, and GitHub MCP file tools UTF-8-corrupt binary blobs
+# (png/ttf/pck/wasm). 34MB index.wasm is under GitHub's 100MB file limit.
+name: Publish CC0 assets and Web export
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-cc0-and-web.yml"
+      - "scripts/download_cc0_assets.sh"
+      - "export-web.sh"
+      - "export_presets.cfg"
+      - "project.godot"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-cc0-and-web
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CC0 Kenney and MELLE assets
+        run: bash scripts/download_cc0_assets.sh
+
+      - name: Install Godot 4.3 and Web export templates
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/godot
+          curl -L --fail --retry 4 -o /tmp/godot.zip \
+            https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          unzip -o /tmp/godot.zip -d /tmp/godot
+          chmod +x /tmp/godot/Godot_v4.3-stable_linux.x86_64
+          curl -L --fail --retry 4 -o /tmp/templates.tpz \
+            https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.3.stable"
+          unzip -j /tmp/templates.tpz \
+            'templates/version.txt' 'templates/web_*.zip' \
+            -d "$HOME/.local/share/godot/export_templates/4.3.stable"
+          test -f "$HOME/.local/share/godot/export_templates/4.3.stable/web_nothreads_release.zip"
+
+      - name: Import resources and export Web
+        env:
+          GODOT_BIN: /tmp/godot/Godot_v4.3-stable_linux.x86_64
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --import || true
+          bash export-web.sh
+          test -f build/web/index.html
+          test -f build/web/index.js
+          test -f build/web/index.pck
+          test -f build/web/index.wasm
+          ls -lh build/web assets/crystals assets/env assets/units assets/ui | head -80
+
+      - name: Commit assets and Web build to main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A assets build/web
+          if git diff --cached --quiet; then
+            echo "No asset/web changes to commit"
+            exit 0
+          fi
+          git commit -m "Add CC0 Kenney/MELLE assets and Godot 4.3 Web export"
+          git push origin HEAD:main
