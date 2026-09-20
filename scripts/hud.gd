@@ -59,9 +59,11 @@ func set_enemy_hp(current: int, maximum: int) -> void:
 
 
 func show_toast(text: String) -> void:
+	if _toast == null:
+		return
 	_toast.text = text
 	_toast.visible = true
-	_toast_time = 1.4
+	_toast_time = 2.8 if text.length() > 22 else 1.6
 
 
 func _on_economy(gold: int, mana: float, max_mana: float) -> void:
@@ -161,7 +163,7 @@ func _build_ui() -> void:
 	_mana_label.size = Vector2(236, 20)
 	econ.add_child(_mana_label)
 
-	var hint2 := _make_label("Gold trains. Mana is Type Pulse.", 11, Color("5a5850"))
+	var hint2 := _make_label("Kills +15 gold. Mana is Type Pulse.", 11, Color("5a5850"))
 	hint2.position = Vector2(12, 72)
 	hint2.size = Vector2(244, 20)
 	econ.add_child(hint2)
@@ -180,7 +182,7 @@ func _build_ui() -> void:
 		var kind: int = kinds[i]
 		var info: Dictionary = UnitScript.DISPLAY[kind]
 		var cost: int = int(UnitScript.COST[kind])
-		var label := "%d  %s\n%s · %dg" % [i + 1, info["name"], info["role"], cost]
+		var label := "%d  %s\n%s / %s · %dg" % [i + 1, info["name"], info["role"], info["affinity"], cost]
 		var btn := _make_button(label, Vector2(12 + i * 178, 14), Vector2(168, 80), btn_colors[i])
 		var icon := CrystalArt.tex(CrystalArt.unit_body_path(0, kind))
 		if icon:
@@ -198,14 +200,14 @@ func _build_ui() -> void:
 
 	_toast = _make_label("", 22, Color("1c2834"))
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast.position = Vector2(340, 120)
-	_toast.size = Vector2(600, 36)
+	_toast.position = Vector2(280, 112)
+	_toast.size = Vector2(720, 44)
 	_toast.visible = false
 	root.add_child(_toast)
 
-	var hint := _make_label("1 Tank  ·  2 Melee  ·  3 Ranged  ·  4 Support     Space Type Pulse (middle third)", 13, Color("1c2834"))
-	hint.position = Vector2(300, 14)
-	hint.size = Vector2(760, 24)
+	var hint := _make_label("1 Tank  ·  2 Melee  ·  3 Ranged  ·  4 Support     Space Type Pulse     Rock > Fighting > Fairy > Psychic", 13, Color("1c2834"))
+	hint.position = Vector2(280, 14)
+	hint.size = Vector2(980, 24)
 	root.add_child(hint)
 
 	_end_panel = _nine("res://assets/ui/panel.png", Vector2(440, 220), Vector2(400, 220))

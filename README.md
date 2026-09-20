@@ -24,6 +24,8 @@ git push -u github cursor/cc0-assets-and-polish-831a
 
 GitHub `main` was seeded separately (unrelated history). Prefer pushing the polish branch and opening a PR rather than force-updating `main`. To replace `main` after review: `git push github cursor/cc0-assets-and-polish-831a:main` (may need `--force-with-lease` because the histories diverge).
 
+PNG/TTF/`index.pck`/`index.wasm` must go through git (or the `Publish CC0 assets and Web export` Action). They are well under GitHub’s 100MB file limit (`index.wasm` is ~34MB) but the Contents API / MCP file tools cannot send those binaries intact. The Action downloads the same CC0 Kenney + MELLE packs, headless-exports Godot 4.3 Web, and commits `assets/` + `build/web/` onto `main`.
+
 ## How to open (editor)
 
 1. Install **Godot 4.3+** from [godotengine.org](https://godotengine.org/download).
@@ -80,14 +82,18 @@ Train units with **gold**. Cast **Type Pulse** with **mana**. At most **8** unit
 
 Type Pulse spends 55 mana, sends a wave across the **whole lane**, and **damages + slows only in the middle third** (marked on the path).
 
+Killing a red unit pays **+15 gold**. Income also ticks at 15 gold/s (start 110). The first 40s of a match shows a few key-bind toasts (`1`–`4`, `Space`); they skip once you have used that action.
+
 ## Units (original names)
 
-| Key | Role | Creature | Gold | Stub |
-| --- | --- | --- | --- | --- |
-| `1` | Tank (Rock) | Cragback | 70 | High HP, 28% damage resist, holds the line (taunt) |
-| `2` | Melee (Fighting) | Knuckhorn | 45 | Fast, high damage, extra punch vs crystals |
-| `3` | Ranged (Psychic) | Veilray | 60 | Long-range motes; kites if foes close in |
-| `4` | Support (Fairy) | Gleamlet | 55 | Heals a nearby ally and grants a short haste buff |
+| Key | Role | Affinity | Creature | Gold | Stub |
+| --- | --- | --- | --- | --- | --- |
+| `1` | Tank | Rock | Cragback | 70 | High HP, 28% damage resist, holds the line (taunt) |
+| `2` | Melee | Fighting | Knuckhorn | 45 | Fast, high damage, extra punch vs crystals |
+| `3` | Ranged | Psychic | Veilray | 60 | Long-range motes; kites if foes close in |
+| `4` | Support | Fairy | Gleamlet | 55 | Heals a nearby ally and grants a short haste buff |
+
+**Affinity** (unit vs unit only, not vs crystals): **Rock → Fighting → Fairy → Psychic → Rock**. Attacker strong vs the next in the cycle (**×1.35**), weak vs the previous (**×0.75**). Neutral otherwise.
 
 Restart after victory/defeat with `R` or Enter.
 
