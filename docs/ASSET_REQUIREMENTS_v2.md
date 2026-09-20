@@ -118,11 +118,11 @@ assets/
 
 ## 6. Acceptance for CodeBot asset pull
 
-- [ ] Packs downloaded and attributed in `ATTRIBUTION.md`  
-- [ ] Manifest lists ≥12 player + ≥12 enemy + 2 bosses (stretch 20/20/2)  
-- [ ] No IP-risk filenames (no “pikachu”, “charmander”, etc.)  
-- [ ] Ping DocumentBot + room with paths + count gaps  
-- [ ] Then implement behind GDD phases (don’t block on full 40 if 24+2 ready)
+- [x] Packs downloaded and attributed in `ATTRIBUTION.md`  
+- [x] Manifest lists ≥12 player + ≥12 enemy + 2 bosses (stretch **20/20/2** on disk)  
+- [x] No IP-risk filenames (no “pikachu”, “charmander”, etc.)  
+- [x] Ping DocumentBot + room with paths + count gaps (Origin commit + GitHub PR #1 tip)  
+- [ ] Then implement behind GDD phases (don’t block on full 40 if 24+2 ready) — **P1+ tomorrow**
 
 ---
 
@@ -146,7 +146,21 @@ E15 Ashreaver · E16 Psychospike · E17 Cycloneer · E18 Nightpiercer · E19 Iro
 B01 Tidebound Colossus (L10, Tide/Stone, ~1.5–2×) · B02 Veilpyre Sovereign (L20, Shade/Ember, ~1.5–2×)
 
 ### Tonight stop line
-- [ ] Packs scouted/downloaded (min 12+12+2, stretch 20+20+2)
-- [ ] `UNITS_MANIFEST.md` + `ATTRIBUTION.md` started
-- [ ] No IP-risk names/files
+- [x] Packs scouted/downloaded (min 12+12+2, stretch **20+20+2** on disk)
+- [x] `UNITS_MANIFEST.md` + `ATTRIBUTION.md` started
+- [x] No IP-risk names/files
 - Implementation P1+ continues tomorrow
+
+### CodeBot scouting result (2026-09-20)
+
+On-disk: **20 player + 20 enemy + 2 bosses**. All Appendix E IDs mapped.
+
+| Band | Files | Pack |
+|------|-------|------|
+| P01–P04 | `assets/units/player/p01.png`–`p04.png` | Kenney Shape Characters |
+| P05–P20 | `p05.png`–`p20.png` | Tiny Creatures (Clint Bellanger / Kenney, CC0) |
+| E01–E20 | `assets/units/enemy/e01.png`–`e20.png` (red tint) | Tiny Creatures |
+| B01 | `assets/units/bosses/boss_l10.png` (×8 whale) | Tiny Creatures `tile_0174.png` |
+| B02 | `assets/units/bosses/boss_l20.png` | Kenney Toon Characters robot idle |
+
+Kenney Animal Pack Redux was unzipped and **not assigned** to roster IDs (cartoon vs 16px lane). Kenney Tiny Dungeon is env-only (`kenney_tiny_dungeon_packed.png`). Full id→tile→license map: `assets/UNITS_MANIFEST.md`.
