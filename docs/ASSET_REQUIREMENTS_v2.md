@@ -124,3 +124,29 @@ assets/
 - [ ] Ping DocumentBot + room with paths + count gaps  
 - [ ] Then implement behind GDD phases (don’t block on full 40 if 24+2 ready)
 
+---
+
+## 7. Named roster scouting checklist (GDD v1.3)
+
+Map each ID → one CC0 PNG in `assets/UNITS_MANIFEST.md`. Prefer distinct silhouettes; enemy tint OK if needed.
+
+### Player (20)
+P01 Cragback (Stone T1) · P02 Knuckhorn (Strike T1) · P03 Veilray (Mind T1) · P04 Gleamlet (Bloom T1)  
+P05 Cindercurl (Ember T2) · P06 Brinefin (Tide T2) · P07 Petalward (Bloom T2) · P08 Rivetfist (Strike T2)  
+P09 Zephyrick (Gale T3) · P10 Boulderbrace (Stone T3) · P11 Cognivolt (Mind T3) · P12 Duskneedle (Shade T3)  
+P13 Pyremaw (Ember T4) · P14 Abysshell (Tide T4) · P15 Squallwing (Gale T4) · P16 Bloomspire (Bloom T4)  
+P17 Shatterjaw (Strike T4) · P18 Gravemaw (Stone T5) · P19 Nullwraith (Shade T5) · P20 Astralith (Mind T5)
+
+### Enemy (20)
+E01 Brawlgrub · E02 Graveltusk · E03 Sparkpup · E04 Softspore · E05 Puddlefin · E06 Gustling · E07 Hexmite  
+E08 Cinderbrute · E09 Ripcurrent · E10 Cleaverkin · E11 Bastionmite · E12 Gloomwisp · E13 Vinewretch · E14 Deepmaw  
+E15 Ashreaver · E16 Psychospike · E17 Cycloneer · E18 Nightpiercer · E19 Ironshard · E20 Ragemaw
+
+### Bosses (2)
+B01 Tidebound Colossus (L10, Tide/Stone, ~1.5–2×) · B02 Veilpyre Sovereign (L20, Shade/Ember, ~1.5–2×)
+
+### Tonight stop line
+- [ ] Packs scouted/downloaded (min 12+12+2, stretch 20+20+2)
+- [ ] `UNITS_MANIFEST.md` + `ATTRIBUTION.md` started
+- [ ] No IP-risk names/files
+- Implementation P1+ continues tomorrow
