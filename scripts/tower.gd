@@ -25,7 +25,9 @@ func setup(p_team: Team, pos: Vector2) -> void:
 		add_to_group("player_towers")
 	else:
 		add_to_group("enemy_towers")
+	z_index = 1
 	_build_visual()
+	_attach_crystal_sprite()
 
 
 func _process(delta: float) -> void:
@@ -77,37 +79,60 @@ func _build_visual() -> void:
 	])
 	_visual.add_child(plinth)
 
-	# Faceted crystal (2.5D)
+	# Faceted crystal (2.5D) — hidden when MELLE sprites load.
 	var crystal_side := Polygon2D.new()
+	crystal_side.name = "GeomCrystal"
 	crystal_side.color = pal["side"]
 	crystal_side.polygon = PackedVector2Array([
 		Vector2(4, -108), Vector2(28, -70), Vector2(22, -8), Vector2(4, -8),
 	])
 	_visual.add_child(crystal_side)
 	var crystal := Polygon2D.new()
+	crystal.name = "GeomCrystal"
 	crystal.color = pal["front"]
 	crystal.polygon = PackedVector2Array([
 		Vector2(-6, -118), Vector2(4, -108), Vector2(4, -8), Vector2(-28, -8), Vector2(-34, -64),
 	])
 	_visual.add_child(crystal)
 	var facet := Polygon2D.new()
+	facet.name = "GeomCrystal"
 	facet.color = pal["gem"]
 	facet.polygon = PackedVector2Array([
 		Vector2(-18, -86), Vector2(-4, -100), Vector2(0, -70), Vector2(-16, -58),
 	])
 	_visual.add_child(facet)
 	var shard := Polygon2D.new()
+	shard.name = "GeomCrystal"
 	shard.color = pal["flag"]
 	shard.polygon = PackedVector2Array([
 		Vector2(-38, -20), Vector2(-30, -44), Vector2(-24, -12),
 	])
 	_visual.add_child(shard)
 	var shard2 := Polygon2D.new()
+	shard2.name = "GeomCrystal"
 	shard2.color = pal["gem"]
 	shard2.polygon = PackedVector2Array([
 		Vector2(18, -24), Vector2(30, -40), Vector2(34, -10),
 	])
 	_visual.add_child(shard2)
+
+
+func _attach_crystal_sprite() -> void:
+	var path := "res://assets/crystals/crystal_blue.png" if team == Team.PLAYER else "res://assets/crystals/crystal_red.png"
+	var tex := CrystalArt.tex(path)
+	if tex == null:
+		return
+	# Hide the geometric gem; keep the stone plinth + shadow.
+	for child in _visual.get_children():
+		if str(child.name).begins_with("GeomCrystal"):
+			child.visible = false
+	var sprite := Sprite2D.new()
+	sprite.texture = tex
+	sprite.centered = true
+	sprite.position = Vector2(4, -62)
+	sprite.scale = Vector2(0.36, 0.36)
+	sprite.z_index = 1
+	_visual.add_child(sprite)
 
 
 func _palette() -> Dictionary:
