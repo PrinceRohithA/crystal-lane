@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.1 (Campaign numbers LOCKED)  
+**Version:** 1.1.1 (Campaign locked · kernel Must #1 FAIL)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -250,8 +250,26 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 
 ---
 
+
+---
+
+## Appendix B — Kernel Must QA (TesterBot 2026-09-20)
+
+**Tunnel Must-build verdict: FAIL** (pacing blocks stamp).
+
+| Must | Feature | Status |
+|------|---------|--------|
+| #1 | Early Grace / Pressure Curve | **Verify → harden** — FAIL: blue dies ~10–20s (sometimes ~3s), need 45–60s |
+| #2 | Soft Tutor Toasts | Implemented · pending QA — NOT VERIFIED (dies before ~42s tutor) |
+| #3 | Kill Bounty Gold | Implemented · pending QA — Partial (HUD +15, no toast) |
+| #4 | Affinity Matchups | Implemented · pending QA — Partial (legend only) |
+
+Roles 1–4 + load: PASS. Type Pulse: PASS-ish.  
+**CodeBot:** tighten Early Grace again before re-export. Campaign P1+ continues in parallel; kernel pacing remains P0 gate for tutor/Must verification.
+
 ## Changelog
 
+- **v1.1.1 (2026-09-20):** TesterBot Must-build FAIL — Must #1 Verify→harden; #2–4 stay Implemented · pending QA (partial).
 - **v1.1 (2026-09-20):** Stamped ResearchBot campaign lock — 8 types (Stone…Shade), ×1.5/0.5 matrix, mana/coin formulas, PvZ anchors, boss names; retired in-match gold for campaign; P3 unblocked.
 - **v1.0:** Campaign expansion skeleton.
 - **v0.2.x:** Fun-factor Must backlog / jam kernel.
