@@ -21,7 +21,7 @@ const STATS := {
 	},
 	Kind.SUPPORT: {
 		"max_hp": 58, "damage": 5, "speed": 68.0, "attack_range": 52.0,
-		"cooldown": 1.1, "projectile": false, "heal": 9,
+		"cooldown": 1.1, "projectile": false, "heal": 11,
 	},
 }
 
@@ -57,10 +57,13 @@ var _cd: float = 0.0
 var _heal_cd: float = 0.0
 var _slow: float = 1.0
 var _slow_left: float = 0.0
+var _haste: float = 1.0
+var _haste_left: float = 0.0
 var _bob: float = 0.0
 var _moving: bool = false
 var _visual: Node2D
 var _flash: float = 0.0
+var _using_sprites: bool = false
 
 
 func setup(p_team: Team, p_kind: Kind, pos: Vector2, p_tower: Node2D) -> void:
@@ -84,7 +87,7 @@ func setup(p_team: Team, p_kind: Kind, pos: Vector2, p_tower: Node2D) -> void:
 		add_to_group("enemy_units")
 	_build_visual()
 	if team == Team.ENEMY and _visual:
-		_visual.scale.x = -1.0
+		_visual.scale.x = -absf(_visual.scale.x)
 	z_index = 2
 
 
@@ -98,16 +101,26 @@ func apply_slow(multiplier: float, duration: float) -> void:
 	modulate = Color(0.78, 0.62, 1.15)
 
 
+func apply_haste(multiplier: float, duration: float) -> void:
+	_haste = multiplier
+	_haste_left = duration
+
+
 func heal(amount: int) -> void:
 	if is_dead or amount <= 0:
 		return
 	hp = mini(hp + amount, max_hp)
+	_flash = 0.55
+	modulate = Color(0.75, 1.25, 0.9)
 	queue_redraw()
 
 
 func take_damage(amount: int) -> void:
 	if is_dead:
 		return
+	# Tank / Rock: stone plating soaks a quarter of incoming hits.
+	if kind == Kind.TANK:
+		amount = maxi(1, int(round(float(amount) * 0.72)))
 	hp = maxi(hp - amount, 0)
 	_flash = 1.0
 	queue_redraw()
@@ -123,6 +136,10 @@ func _process(delta: float) -> void:
 		if _slow_left <= 0.0:
 			_slow = 1.0
 			modulate = Color.WHITE
+	if _haste_left > 0.0:
+		_haste_left -= delta
+		if _haste_left <= 0.0:
+			_haste = 1.0
 	if _flash > 0.0:
 		_flash = maxf(_flash - delta * 6.0, 0.0)
 		var flash_col := Color(1.5, 1.5, 1.5)
@@ -136,13 +153,19 @@ func _process(delta: float) -> void:
 
 	var target := _find_target()
 	_moving = false
+	var pace := move_speed * _slow * _haste
 	if target != null and _distance_to(target) <= attack_range:
 		_try_attack(target)
+		# Ranged / Psychic: keep a gap instead of walking into melee.
+		if uses_projectile and not (target is BattleTower) and _distance_to(target) < attack_range * 0.52:
+			var back := -1.0 if team == Team.PLAYER else 1.0
+			_moving = true
+			position.x += back * pace * 0.65 * delta
 	else:
 		if not _ally_blocking():
 			_moving = true
 			var dir := 1.0 if team == Team.PLAYER else -1.0
-			position.x += dir * move_speed * _slow * delta
+			position.x += dir * pace * delta
 
 	_bob += delta * (10.0 if _moving else 3.5)
 	if _visual:
@@ -168,6 +191,8 @@ func _try_heal() -> void:
 		return
 	_heal_cd = 1.55
 	best.heal(heal_amount)
+	if best.has_method("apply_haste"):
+		best.apply_haste(1.35, 1.6)
 
 
 func _distance_to(node: Node2D) -> float:
@@ -180,6 +205,8 @@ func _distance_to(node: Node2D) -> float:
 func _find_target() -> Node2D:
 	var best: Node2D = null
 	var best_d := INF
+	var best_tank: Node2D = null
+	var best_tank_d := 100.0
 	for u in get_tree().get_nodes_in_group("units"):
 		if u == self or not is_instance_valid(u) or u.is_dead or u.team == team:
 			continue
@@ -189,6 +216,12 @@ func _find_target() -> Node2D:
 		if d < best_d:
 			best_d = d
 			best = u
+		# Tank / Rock holds the line: nearby enemies prefer it.
+		if u.kind == Kind.TANK and d < best_tank_d:
+			best_tank = u
+			best_tank_d = d
+	if best_tank != null:
+		return best_tank
 	if best != null:
 		return best
 	if is_instance_valid(enemy_tower) and not enemy_tower.is_destroyed:
@@ -210,9 +243,10 @@ func _ally_blocking() -> bool:
 		var dy: float = absf(u.position.y - position.y)
 		if dy > 22.0:
 			continue
-		if team == Team.PLAYER and dx > 6.0 and dx < 30.0:
+		var hold := 38.0 if kind == Kind.TANK else 30.0
+		if team == Team.PLAYER and dx > 6.0 and dx < hold:
 			return true
-		if team == Team.ENEMY and dx < -6.0 and dx > -30.0:
+		if team == Team.ENEMY and dx < -6.0 and dx > -hold:
 			return true
 	return false
 
@@ -226,14 +260,18 @@ func _try_attack(target: Node2D) -> void:
 		var lunge := 8.0 if team == Team.PLAYER else -8.0
 		tw.tween_property(_visual, "position:x", lunge, 0.08)
 		tw.tween_property(_visual, "position:x", 0.0, 0.12)
+	var dmg := damage
+	# Melee / Fighting: extra punch into crystals.
+	if kind == Kind.MELEE and target is BattleTower:
+		dmg += 4
 	if uses_projectile:
 		var proj := preload("res://scripts/projectile.gd").new()
 		var spawn_at := global_position + Vector2(18 * (1.0 if team == Team.PLAYER else -1.0), -16)
 		get_parent().add_child(proj)
-		proj.setup(team, spawn_at, target, damage)
+		proj.setup(team, spawn_at, target, dmg)
 	else:
 		if target.has_method("take_damage"):
-			target.take_damage(damage)
+			target.take_damage(dmg)
 
 
 func _die() -> void:
@@ -246,6 +284,10 @@ func _die() -> void:
 
 
 func _build_visual() -> void:
+	_visual = Node2D.new()
+	add_child(_visual)
+	if _try_build_sprites():
+		return
 	var shadow := Polygon2D.new()
 	shadow.color = Color(0.1, 0.12, 0.08, 0.4)
 	var wide := 20.0 if kind == Kind.TANK else 16.0
@@ -253,9 +295,7 @@ func _build_visual() -> void:
 		Vector2(-wide, 10), Vector2(wide, 10), Vector2(wide - 4, 18), Vector2(-wide + 4, 18),
 	])
 	add_child(shadow)
-
-	_visual = Node2D.new()
-	add_child(_visual)
+	move_child(shadow, 0)
 	match kind:
 		Kind.TANK:
 			_build_cragback()
@@ -265,6 +305,47 @@ func _build_visual() -> void:
 			_build_veilray()
 		Kind.SUPPORT:
 			_build_gleamlet()
+
+
+func _try_build_sprites() -> bool:
+	var body_tex := CrystalArt.tex(CrystalArt.unit_body_path(team, kind))
+	if body_tex == null:
+		return false
+	_using_sprites = true
+	var blob := Sprite2D.new()
+	blob.texture = CrystalArt.tex("res://assets/units/shadow.png")
+	blob.position = Vector2(0, 14)
+	blob.modulate = Color(1, 1, 1, 0.55)
+	add_child(blob)
+	move_child(blob, 0)
+
+	var sc: float = float(CrystalArt.UNIT_SCALE[kind])
+	_visual.scale = Vector2(sc, sc)
+
+	var body := Sprite2D.new()
+	body.texture = body_tex
+	body.position = Vector2(0, -10)
+	_visual.add_child(body)
+
+	var face_tex := CrystalArt.tex(CrystalArt.unit_face_path(kind))
+	if face_tex:
+		var face := Sprite2D.new()
+		face.texture = face_tex
+		face.position = Vector2(2 if team == Team.PLAYER else -2, -12)
+		_visual.add_child(face)
+
+	var hand_tex := CrystalArt.tex(CrystalArt.unit_hand_path(team, kind))
+	if hand_tex:
+		var hl := Sprite2D.new()
+		hl.texture = hand_tex
+		hl.position = Vector2(-26, 6)
+		_visual.add_child(hl)
+		var hr := Sprite2D.new()
+		hr.texture = hand_tex
+		hr.position = Vector2(26, 6)
+		hr.flip_h = true
+		_visual.add_child(hr)
+	return true
 
 
 func _pal() -> Dictionary:
@@ -297,6 +378,7 @@ func _pal() -> Dictionary:
 
 func _build_cragback() -> void:
 	var pal := _pal()
+	# Bulky rock-plated quadruped.
 	_rect_poly(_visual, Rect2(-14, 0, 8, 14), pal["body_dark"])
 	_rect_poly(_visual, Rect2(6, 0, 8, 14), pal["body_dark"])
 	var shell := Polygon2D.new()
@@ -444,6 +526,6 @@ func _draw() -> void:
 		return
 	var w := 30.0
 	var ratio := clampf(float(hp) / float(max_hp), 0.0, 1.0)
-	var top := Vector2(-w * 0.5, -40)
+	var top := Vector2(-w * 0.5, -46 if _using_sprites else -40)
 	draw_rect(Rect2(top, Vector2(w, 4)), Color(0.1, 0.1, 0.12, 0.8))
 	draw_rect(Rect2(top, Vector2(w * ratio, 4)), Color("6edc6a"))
