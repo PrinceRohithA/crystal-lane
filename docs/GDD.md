@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.1.1 (Campaign locked · kernel Must #1 FAIL)  
+**Version:** 1.2 (Campaign locked · economy/wave tables folded · TesterBot paused)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -267,8 +267,66 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 Roles 1–4 + load: PASS. Type Pulse: PASS-ish.  
 **CodeBot:** tighten Early Grace again before re-export. Campaign P1+ continues in parallel; kernel pacing remains P0 gate for tutor/Must verification.
 
+
+---
+
+## Appendix C — Economy tables (ResearchBot lock, for CodeBot)
+
+### Troop tier stats
+| Tier | Mana | HP | DPS |
+|------|------|----|-----|
+| 1 | 12 | 80 | 8.0 |
+| 2 | 17 | 97 | 9.7 |
+| 3 | 25 | 120 | 12.0 |
+| 4 | 37 | 149 | 14.9 |
+| 5 | 53 | 181 | 18.1 |
+
+Alive cap optional: **8 → 10 @ L10 → 12 @ L20**.
+
+### Mana Lab (meta coins)
+**Regen:** Lv1–7 buy costs 50 / 75 / 112 / 169 / 253 / 380 / 570 → regen 2.24…4.42/s (base 2.0).  
+**Cap:** Lv1–7 buy costs 40 / 62 / 96 / 149 / 231 / 358 / 555 → cap 125…275 (`100+25*n`).
+
+### Level clear coins (1★)
+| L | Total | L | Total |
+|---|-------|---|-------|
+| 1 | 25 | 11 | 181 |
+| 2 | 30 | 12 | 221 |
+| 3 | 37 | 13 | 270 |
+| 4 | 45 | 14 | 329 |
+| 5 | 55 | 15 | 401 |
+| 6 | 67 | 16 | 489 |
+| 7 | 82 | 17 | 597 |
+| 8 | 100 | 18 | 728 |
+| 9 | 122 | 19 | 888 |
+| **10** | **299** (149+150) | **20** | **1483** (1083+400) |
+
+Campaign ~6.5k coins one-clear. Optional ★ bonus +10%/+25%/+40%.
+
+Unlock troops 5–20: coins ≈ `40*1.4^k`. Deck slots stay level-gated (not coin).
+
+---
+
+## Appendix D — Wave bands (PvZ)
+
+| Band | Lv | Waves | Flags | Lull | HP mult |
+|------|----|-------|-------|------|---------|
+| Teach | 1–3 | 3 | 0–1 | 8–10s | ×1.00–1.17 |
+| Early | 4–6 | 4 | 1 | 7–8s | ×1.26–1.47 |
+| Mid | 7–9 | 4–5 | 1–2 | 6–7s | ×1.59–1.85 |
+| Boss | **10** | 5 | 2+boss | 5–6s | fodder×2.0 / boss×2.7 |
+| Mid-late | 11–14 | 5 | 2 | 5–6s | ×2.16–2.72 |
+| Late | 15–19 | 5–6 | 2–3 | 4–5s | ×2.94–4.00 |
+| Finale | **20** | 6 | 3+boss | 4s | fodder×4.0 / boss×6.7 |
+
+Template: Prep 12–20s → Wave (50% HP or 22–35s timeout) → Lull 4–10s → Huge flag prefers full clear.  
+Fodder HP: `1.08^(L-1)`. Full L1/L10/L20 sketches in `research-campaign-v1.md`.
+
+**Boss telegraphs:** L10 Tidebound Colossus — 66%/33% phases, slam 1.2s, brings Strike/Ember. L20 Veilpyre Sovereign — 70%/40%/15%, mist→nova, enrage t>180s.
+
 ## Changelog
 
+- **v1.2 (2026-09-20):** Folded ResearchBot economy + wave-band tables (App C/D) for CodeBot P2/P3; TesterBot paused per user.
 - **v1.1.1 (2026-09-20):** TesterBot Must-build FAIL — Must #1 Verify→harden; #2–4 stay Implemented · pending QA (partial).
 - **v1.1 (2026-09-20):** Stamped ResearchBot campaign lock — 8 types (Stone…Shade), ×1.5/0.5 matrix, mana/coin formulas, PvZ anchors, boss names; retired in-match gold for campaign; P3 unblocked.
 - **v1.0:** Campaign expansion skeleton.
