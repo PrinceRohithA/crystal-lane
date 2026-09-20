@@ -33,15 +33,19 @@ const COST := {
 }
 
 const DISPLAY := {
-	Kind.TANK: { "name": "Cragback", "role": "Tank", "affinity": "Rock" },
-	Kind.MELEE: { "name": "Knuckhorn", "role": "Melee", "affinity": "Fighting" },
-	Kind.RANGED: { "name": "Veilray", "role": "Ranged", "affinity": "Psychic" },
-	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support", "affinity": "Fairy" },
+	Kind.TANK: { "name": "Cragback", "role": "Tank", "affinity": "Stone" },
+	Kind.MELEE: { "name": "Knuckhorn", "role": "Melee", "affinity": "Strike" },
+	Kind.RANGED: { "name": "Veilray", "role": "Ranged", "affinity": "Mind" },
+	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support", "affinity": "Bloom" },
 }
 
-# Rock → Fighting → Fairy → Psychic → Rock. Strong vs next, weak vs previous.
-const AFFINITY_STRONG := 1.35
-const AFFINITY_WEAK := 0.75
+# Kernel roles → GDD v1.3.1 8-type chart (P3).
+const KIND_TO_TYPE := {
+	Kind.TANK: GddBalance.Type.STN,
+	Kind.MELEE: GddBalance.Type.STR,
+	Kind.RANGED: GddBalance.Type.MND,
+	Kind.SUPPORT: GddBalance.Type.BLM,
+}
 
 var team: Team = Team.PLAYER
 var kind: Kind = Kind.MELEE
@@ -99,27 +103,12 @@ func get_hit_position() -> Vector2:
 	return global_position + Vector2(0, -18)
 
 
-static func affinity_index(p_kind: int) -> int:
-	match p_kind:
-		Kind.TANK:
-			return 0
-		Kind.MELEE:
-			return 1
-		Kind.SUPPORT:
-			return 2
-		Kind.RANGED:
-			return 3
-	return 0
+static func gdd_type_for_kind(p_kind: int) -> int:
+	return int(KIND_TO_TYPE.get(p_kind, GddBalance.Type.STR))
 
 
 static func affinity_multiplier(attacker_kind: int, defender_kind: int) -> float:
-	var a := affinity_index(attacker_kind)
-	var d := affinity_index(defender_kind)
-	if d == (a + 1) % 4:
-		return AFFINITY_STRONG
-	if d == (a + 3) % 4:
-		return AFFINITY_WEAK
-	return 1.0
+	return GddBalance.multiplier(gdd_type_for_kind(attacker_kind), gdd_type_for_kind(defender_kind))
 
 
 func apply_slow(multiplier: float, duration: float) -> void:
@@ -145,7 +134,6 @@ func heal(amount: int) -> void:
 func take_damage(amount: int) -> void:
 	if is_dead:
 		return
-	# Tank / Rock: stone plating soaks a quarter of incoming hits.
 	if kind == Kind.TANK:
 		amount = maxi(1, int(round(float(amount) * 0.72)))
 	hp = maxi(hp - amount, 0)
@@ -183,7 +171,6 @@ func _process(delta: float) -> void:
 	var pace := move_speed * _slow * _haste
 	if target != null and _distance_to(target) <= attack_range:
 		_try_attack(target)
-		# Ranged / Psychic: keep a gap instead of walking into melee.
 		if uses_projectile and not (target is BattleTower) and _distance_to(target) < attack_range * 0.52:
 			var back := -1.0 if team == Team.PLAYER else 1.0
 			_moving = true
@@ -243,7 +230,6 @@ func _find_target() -> Node2D:
 		if d < best_d:
 			best_d = d
 			best = u
-		# Tank / Rock holds the line: nearby enemies prefer it.
 		if u.kind == Kind.TANK and d < best_tank_d:
 			best_tank = u
 			best_tank_d = d
@@ -291,7 +277,6 @@ func _try_attack(target: Node2D) -> void:
 	if target is BattleUnit:
 		dmg = maxi(1, int(round(float(dmg) * affinity_multiplier(kind, target.kind))))
 	elif kind == Kind.MELEE and target is BattleTower:
-		# Melee / Fighting: extra punch into crystals. No affinity vs towers.
 		dmg += 4
 	if uses_projectile:
 		var proj := preload("res://scripts/projectile.gd").new()
@@ -347,22 +332,18 @@ func _try_build_sprites() -> bool:
 	blob.modulate = Color(1, 1, 1, 0.55)
 	add_child(blob)
 	move_child(blob, 0)
-
 	var sc: float = float(CrystalArt.UNIT_SCALE[kind])
 	_visual.scale = Vector2(sc, sc)
-
 	var body := Sprite2D.new()
 	body.texture = body_tex
 	body.position = Vector2(0, -10)
 	_visual.add_child(body)
-
 	var face_tex := CrystalArt.tex(CrystalArt.unit_face_path(kind))
 	if face_tex:
 		var face := Sprite2D.new()
 		face.texture = face_tex
 		face.position = Vector2(2 if team == Team.PLAYER else -2, -12)
 		_visual.add_child(face)
-
 	var hand_tex := CrystalArt.tex(CrystalArt.unit_hand_path(team, kind))
 	if hand_tex:
 		var hl := Sprite2D.new()
@@ -389,45 +370,25 @@ func _pal() -> Dictionary:
 		Kind.SUPPORT:
 			type_accent = Color("f0a0c8")
 	if team == Team.PLAYER:
-		return {
-			"body": Color("4f9ad8"),
-			"body_dark": Color("2d6eae"),
-			"belly": Color("c5e4f7"),
-			"accent": type_accent,
-			"eye": Color("1c2834"),
-		}
-	return {
-		"body": Color("e86b5b"),
-		"body_dark": Color("b33d32"),
-		"belly": Color("f7d0c5"),
-		"accent": type_accent,
-		"eye": Color("1c2834"),
-	}
+		return {"body": Color("4f9ad8"), "body_dark": Color("2d6eae"), "belly": Color("c5e4f7"), "accent": type_accent, "eye": Color("1c2834")}
+	return {"body": Color("e86b5b"), "body_dark": Color("b33d32"), "belly": Color("f7d0c5"), "accent": type_accent, "eye": Color("1c2834")}
 
 
 func _build_cragback() -> void:
 	var pal := _pal()
-	# Bulky rock-plated quadruped.
 	_rect_poly(_visual, Rect2(-14, 0, 8, 14), pal["body_dark"])
 	_rect_poly(_visual, Rect2(6, 0, 8, 14), pal["body_dark"])
 	var shell := Polygon2D.new()
 	shell.color = pal["accent"]
-	shell.polygon = PackedVector2Array([
-		Vector2(-22, -4), Vector2(-12, -24), Vector2(8, -28), Vector2(22, -10),
-		Vector2(18, 6), Vector2(-18, 8),
-	])
+	shell.polygon = PackedVector2Array([Vector2(-22, -4), Vector2(-12, -24), Vector2(8, -28), Vector2(22, -10), Vector2(18, 6), Vector2(-18, 8)])
 	_visual.add_child(shell)
 	var plate := Polygon2D.new()
 	plate.color = pal["body"]
-	plate.polygon = PackedVector2Array([
-		Vector2(-8, -18), Vector2(6, -22), Vector2(14, -8), Vector2(-4, -4),
-	])
+	plate.polygon = PackedVector2Array([Vector2(-8, -18), Vector2(6, -22), Vector2(14, -8), Vector2(-4, -4)])
 	_visual.add_child(plate)
 	var head := Polygon2D.new()
 	head.color = pal["body"]
-	head.polygon = PackedVector2Array([
-		Vector2(10, -12), Vector2(26, -8), Vector2(24, 4), Vector2(8, 2),
-	])
+	head.polygon = PackedVector2Array([Vector2(10, -12), Vector2(26, -8), Vector2(24, 4), Vector2(8, 2)])
 	_visual.add_child(head)
 	_eye(Vector2(20, -4), pal["eye"])
 
@@ -438,22 +399,15 @@ func _build_knuckhorn() -> void:
 	_rect_poly(_visual, Rect2(4, 2, 6, 12), pal["body_dark"])
 	var body := Polygon2D.new()
 	body.color = pal["body"]
-	body.polygon = PackedVector2Array([
-		Vector2(-12, -6), Vector2(-6, -20), Vector2(10, -20), Vector2(16, -6),
-		Vector2(12, 8), Vector2(-10, 8),
-	])
+	body.polygon = PackedVector2Array([Vector2(-12, -6), Vector2(-6, -20), Vector2(10, -20), Vector2(16, -6), Vector2(12, 8), Vector2(-10, 8)])
 	_visual.add_child(body)
 	var belly := Polygon2D.new()
 	belly.color = pal["belly"]
-	belly.polygon = PackedVector2Array([
-		Vector2(-4, 0), Vector2(8, 0), Vector2(6, 8), Vector2(-2, 8),
-	])
+	belly.polygon = PackedVector2Array([Vector2(-4, 0), Vector2(8, 0), Vector2(6, 8), Vector2(-2, 8)])
 	_visual.add_child(belly)
 	var head := Polygon2D.new()
 	head.color = pal["body"]
-	head.polygon = PackedVector2Array([
-		Vector2(6, -22), Vector2(20, -20), Vector2(24, -8), Vector2(10, -4), Vector2(4, -10),
-	])
+	head.polygon = PackedVector2Array([Vector2(6, -22), Vector2(20, -20), Vector2(24, -8), Vector2(10, -4), Vector2(4, -10)])
 	_visual.add_child(head)
 	var horn := Polygon2D.new()
 	horn.color = pal["accent"]
@@ -461,9 +415,7 @@ func _build_knuckhorn() -> void:
 	_visual.add_child(horn)
 	var fist := Polygon2D.new()
 	fist.color = pal["accent"]
-	fist.polygon = PackedVector2Array([
-		Vector2(18, -2), Vector2(30, 0), Vector2(28, 8), Vector2(16, 6),
-	])
+	fist.polygon = PackedVector2Array([Vector2(18, -2), Vector2(30, 0), Vector2(28, 8), Vector2(16, 6)])
 	_visual.add_child(fist)
 	_eye(Vector2(16, -12), pal["eye"])
 
@@ -472,21 +424,15 @@ func _build_veilray() -> void:
 	var pal := _pal()
 	var wing := Polygon2D.new()
 	wing.color = pal["accent"]
-	wing.polygon = PackedVector2Array([
-		Vector2(-6, -8), Vector2(-4, -30), Vector2(14, -16), Vector2(8, -2),
-	])
+	wing.polygon = PackedVector2Array([Vector2(-6, -8), Vector2(-4, -30), Vector2(14, -16), Vector2(8, -2)])
 	_visual.add_child(wing)
 	var body := Polygon2D.new()
 	body.color = pal["body"]
-	body.polygon = PackedVector2Array([
-		Vector2(-12, -4), Vector2(0, -18), Vector2(14, -8), Vector2(8, 8), Vector2(-8, 8),
-	])
+	body.polygon = PackedVector2Array([Vector2(-12, -4), Vector2(0, -18), Vector2(14, -8), Vector2(8, 8), Vector2(-8, 8)])
 	_visual.add_child(body)
 	var gem := Polygon2D.new()
 	gem.color = pal["belly"]
-	gem.polygon = PackedVector2Array([
-		Vector2(-2, -6), Vector2(6, -12), Vector2(10, -2), Vector2(2, 4),
-	])
+	gem.polygon = PackedVector2Array([Vector2(-2, -6), Vector2(6, -12), Vector2(10, -2), Vector2(2, 4)])
 	_visual.add_child(gem)
 	var crest := Polygon2D.new()
 	crest.color = pal["accent"]
@@ -499,22 +445,15 @@ func _build_gleamlet() -> void:
 	var pal := _pal()
 	var wing_l := Polygon2D.new()
 	wing_l.color = Color(pal["accent"].r, pal["accent"].g, pal["accent"].b, 0.85)
-	wing_l.polygon = PackedVector2Array([
-		Vector2(-4, -8), Vector2(-22, -18), Vector2(-16, 2), Vector2(0, 4),
-	])
+	wing_l.polygon = PackedVector2Array([Vector2(-4, -8), Vector2(-22, -18), Vector2(-16, 2), Vector2(0, 4)])
 	_visual.add_child(wing_l)
 	var body := Polygon2D.new()
 	body.color = pal["body"]
-	body.polygon = PackedVector2Array([
-		Vector2(-10, -4), Vector2(-4, -16), Vector2(10, -16), Vector2(14, -2),
-		Vector2(8, 10), Vector2(-6, 10),
-	])
+	body.polygon = PackedVector2Array([Vector2(-10, -4), Vector2(-4, -16), Vector2(10, -16), Vector2(14, -2), Vector2(8, 10), Vector2(-6, 10)])
 	_visual.add_child(body)
 	var puff := Polygon2D.new()
 	puff.color = pal["belly"]
-	puff.polygon = PackedVector2Array([
-		Vector2(-4, 0), Vector2(8, 0), Vector2(6, 10), Vector2(-2, 10),
-	])
+	puff.polygon = PackedVector2Array([Vector2(-4, 0), Vector2(8, 0), Vector2(6, 10), Vector2(-2, 10)])
 	_visual.add_child(puff)
 	var tuft := Polygon2D.new()
 	tuft.color = pal["accent"]
@@ -526,27 +465,18 @@ func _build_gleamlet() -> void:
 func _rect_poly(parent: Node, rect: Rect2, color: Color) -> void:
 	var p := Polygon2D.new()
 	p.color = color
-	p.polygon = PackedVector2Array([
-		rect.position,
-		rect.position + Vector2(rect.size.x, 0),
-		rect.position + rect.size,
-		rect.position + Vector2(0, rect.size.y),
-	])
+	p.polygon = PackedVector2Array([rect.position, rect.position + Vector2(rect.size.x, 0), rect.position + rect.size, rect.position + Vector2(0, rect.size.y)])
 	parent.add_child(p)
 
 
 func _eye(pos: Vector2, color: Color) -> void:
 	var white := Polygon2D.new()
 	white.color = Color.WHITE
-	white.polygon = PackedVector2Array([
-		pos + Vector2(-3, -3), pos + Vector2(3, -3), pos + Vector2(3, 3), pos + Vector2(-3, 3),
-	])
+	white.polygon = PackedVector2Array([pos + Vector2(-3, -3), pos + Vector2(3, -3), pos + Vector2(3, 3), pos + Vector2(-3, 3)])
 	_visual.add_child(white)
 	var pupil := Polygon2D.new()
 	pupil.color = color
-	pupil.polygon = PackedVector2Array([
-		pos + Vector2(-1.5, -1.5), pos + Vector2(2, -1.5), pos + Vector2(2, 2), pos + Vector2(-1.5, 2),
-	])
+	pupil.polygon = PackedVector2Array([pos + Vector2(-1.5, -1.5), pos + Vector2(2, -1.5), pos + Vector2(2, 2), pos + Vector2(-1.5, 2)])
 	_visual.add_child(pupil)
 
 
