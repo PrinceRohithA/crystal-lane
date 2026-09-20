@@ -33,11 +33,15 @@ const COST := {
 }
 
 const DISPLAY := {
-	Kind.TANK: { "name": "Cragback", "role": "Tank" },
-	Kind.MELEE: { "name": "Knuckhorn", "role": "Melee" },
-	Kind.RANGED: { "name": "Veilray", "role": "Ranged" },
-	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support" },
+	Kind.TANK: { "name": "Cragback", "role": "Tank", "affinity": "Rock" },
+	Kind.MELEE: { "name": "Knuckhorn", "role": "Melee", "affinity": "Fighting" },
+	Kind.RANGED: { "name": "Veilray", "role": "Ranged", "affinity": "Psychic" },
+	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support", "affinity": "Fairy" },
 }
+
+# Rock → Fighting → Fairy → Psychic → Rock. Strong vs next, weak vs previous.
+const AFFINITY_STRONG := 1.35
+const AFFINITY_WEAK := 0.75
 
 var team: Team = Team.PLAYER
 var kind: Kind = Kind.MELEE
@@ -93,6 +97,29 @@ func setup(p_team: Team, p_kind: Kind, pos: Vector2, p_tower: Node2D) -> void:
 
 func get_hit_position() -> Vector2:
 	return global_position + Vector2(0, -18)
+
+
+static func affinity_index(p_kind: int) -> int:
+	match p_kind:
+		Kind.TANK:
+			return 0
+		Kind.MELEE:
+			return 1
+		Kind.SUPPORT:
+			return 2
+		Kind.RANGED:
+			return 3
+	return 0
+
+
+static func affinity_multiplier(attacker_kind: int, defender_kind: int) -> float:
+	var a := affinity_index(attacker_kind)
+	var d := affinity_index(defender_kind)
+	if d == (a + 1) % 4:
+		return AFFINITY_STRONG
+	if d == (a + 3) % 4:
+		return AFFINITY_WEAK
+	return 1.0
 
 
 func apply_slow(multiplier: float, duration: float) -> void:
@@ -261,8 +288,10 @@ func _try_attack(target: Node2D) -> void:
 		tw.tween_property(_visual, "position:x", lunge, 0.08)
 		tw.tween_property(_visual, "position:x", 0.0, 0.12)
 	var dmg := damage
-	# Melee / Fighting: extra punch into crystals.
-	if kind == Kind.MELEE and target is BattleTower:
+	if target is BattleUnit:
+		dmg = maxi(1, int(round(float(dmg) * affinity_multiplier(kind, target.kind))))
+	elif kind == Kind.MELEE and target is BattleTower:
+		# Melee / Fighting: extra punch into crystals. No affinity vs towers.
 		dmg += 4
 	if uses_projectile:
 		var proj := preload("res://scripts/projectile.gd").new()

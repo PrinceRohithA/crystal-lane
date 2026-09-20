@@ -39,6 +39,9 @@ const ENEMY_EARLY_SOFT_CAP := 2
 const ENEMY_EARLY_STAT_SCALE := 0.55
 const ENEMY_EARLY_SPEED_SCALE := 0.82
 
+const KILL_BOUNTY := 15
+const TUTOR_WINDOW := 42.0
+
 signal economy_changed(gold: int, mana: float, max_mana: float)
 signal toast_requested(text: String)
 signal match_over(player_won: bool)
@@ -50,6 +53,12 @@ var is_over: bool = false
 var _enemy_spawns: int = 0
 var _late_spawns: int = 0
 var _match_time: float = 0.0
+var _did_spawn: bool = false
+var _did_pulse: bool = false
+var _tutor_step: int = 0
+var _next_tutor_at: float = 1.6
+var _toast_busy_until: float = 0.0
+var _silence_bounty_toast: bool = false
 
 var player_tower
 var enemy_tower
@@ -128,6 +137,7 @@ func _process(delta: float) -> void:
 		gold_bank -= float(add)
 	mana = minf(mana + MANA_PER_SEC * delta, MAX_MANA)
 	economy_changed.emit(gold, mana, MAX_MANA)
+	_maybe_tutor()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -151,14 +161,15 @@ func try_spawn_player(kind: int) -> void:
 	if is_over:
 		return
 	if alive_count() >= MAX_ALIVE:
-		toast_requested.emit("Lane is full (%d)" % MAX_ALIVE)
+		_emit_toast("Lane is full (%d)" % MAX_ALIVE)
 		return
 	var cost := unit_cost(kind)
 	if gold < cost:
-		toast_requested.emit("Not enough gold")
+		_emit_toast("Not enough gold")
 		return
 	gold -= cost
 	economy_changed.emit(gold, mana, MAX_MANA)
+	_did_spawn = true
 	_spawn_unit(UnitScript.Team.PLAYER, kind)
 
 
@@ -166,12 +177,14 @@ func try_cast_type_pulse() -> void:
 	if is_over:
 		return
 	if mana < SPELL_COST:
-		toast_requested.emit("Not enough mana")
+		_emit_toast("Not enough mana")
 		return
 	mana -= SPELL_COST
 	economy_changed.emit(gold, mana, MAX_MANA)
 	if _pulse_fx:
 		_pulse_fx.trigger()
+	var gold_before := gold
+	_silence_bounty_toast = true
 	var hit := 0
 	for u in get_tree().get_nodes_in_group("enemy_units"):
 		if not is_instance_valid(u) or u.is_dead:
@@ -182,10 +195,15 @@ func try_cast_type_pulse() -> void:
 		if is_instance_valid(u) and not u.is_dead:
 			u.apply_slow(SPELL_SLOW, SPELL_SLOW_TIME)
 		hit += 1
+	_silence_bounty_toast = false
+	_did_pulse = true
+	var bounty := gold - gold_before
 	if hit == 0:
-		toast_requested.emit("Type Pulse — no enemies in mid-lane")
+		_emit_toast("Type Pulse — no enemies in mid-lane")
+	elif bounty > 0:
+		_emit_toast("Type Pulse! +%d gold" % bounty)
 	else:
-		toast_requested.emit("Type Pulse!")
+		_emit_toast("Type Pulse!")
 
 
 func _on_enemy_timer() -> void:
@@ -242,11 +260,53 @@ func _spawn_unit(team: int, kind: int) -> void:
 	var y := LANE_Y + randf_range(-14.0, 14.0)
 	var tower: Node2D = enemy_tower if team == UnitScript.Team.PLAYER else player_tower
 	unit.setup(team, kind, Vector2(x, y), tower)
+	unit.died.connect(_on_unit_died)
 	if team == UnitScript.Team.ENEMY and _match_time < ENEMY_RAMP_AFTER:
 		unit.max_hp = maxi(8, int(round(float(unit.max_hp) * ENEMY_EARLY_STAT_SCALE)))
 		unit.hp = unit.max_hp
 		unit.damage = maxi(1, int(round(float(unit.damage) * ENEMY_EARLY_STAT_SCALE)))
 		unit.move_speed *= ENEMY_EARLY_SPEED_SCALE
+
+
+func _on_unit_died(unit) -> void:
+	if is_over or unit == null:
+		return
+	if unit.team != UnitScript.Team.ENEMY:
+		return
+	gold += KILL_BOUNTY
+	economy_changed.emit(gold, mana, MAX_MANA)
+	if not _silence_bounty_toast:
+		_emit_toast("+%d gold" % KILL_BOUNTY)
+
+
+func _emit_toast(text: String, hold: float = 1.8) -> void:
+	toast_requested.emit(text)
+	_toast_busy_until = _match_time + hold
+
+
+func _maybe_tutor() -> void:
+	if is_over or _match_time > TUTOR_WINDOW:
+		return
+	if _match_time < _next_tutor_at or _match_time < _toast_busy_until:
+		return
+	var tip := ""
+	while _tutor_step < 3 and tip == "":
+		match _tutor_step:
+			0:
+				if not _did_spawn:
+					tip = "Press 1–4 to train a unit"
+			1:
+				if not _did_spawn:
+					tip = "1 Tank  ·  2 Melee  ·  3 Ranged  ·  4 Support"
+			2:
+				if not _did_pulse:
+					tip = "Space — Type Pulse (middle lane)"
+		_tutor_step += 1
+	if tip == "":
+		_next_tutor_at = _match_time + 4.0
+		return
+	_emit_toast(tip, 2.8)
+	_next_tutor_at = _match_time + 6.0
 
 
 func _on_player_tower_down() -> void:
