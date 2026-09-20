@@ -1,10 +1,11 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.0 (Campaign Expansion)  
+**Version:** 1.1 (Campaign numbers LOCKED)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
 **Engine:** Godot 4.3 · Web (HTML5) · **CC0 assets only**  
+**Research:** `/workspace/crystal-lane/research-campaign-v1.md` (ResearchBot)  
 **Live tunnel (prototype):** https://solutions-ceremony-continued-south.trycloudflare.com  
 
 **Pillars:** Fun first · meaningful type matchups · CC0 / original creatures only · **no official Pokémon IP**.
@@ -15,21 +16,20 @@
 
 Evolve the Stick War–style lane prototype into a **campaign lane-defender** with:
 
-- Large unlockable troop roster (player + enemy)
-- A real **type chart** (Pokémon-*inspired*, original type names)
-- **Plants vs Zombies–style waves** across **20 levels**
-- Bosses at **Level 10** and **Level 20**
+- 20 player + 20 enemy troops + 2 bosses
+- Locked **8-type** chart (IP-safe names)
+- **PvZ-style waves** across **20 levels** (bosses @ 10 & 20)
 - **Global coins** (meta) vs **mana-only** in battle
-- Deck building with slot unlocks
-- Exponential cost / power curves
+- Deck **4 → 5 @ L10 → 6 @ L20**
+- Exponential mana / unlock / meta curves
 
-Prototype v0.2.x (4 roles, Pulse, bounty, tutor, affinity) remains the **combat kernel** and ship baseline.
+Prototype kernel (lane combat, Type Pulse, soft tutor) remains the ship baseline. **Retire in-match gold / kill bounty** for campaign mode (mana-only deploys + Pulse).
 
 ---
 
 ## 1. Elevator pitch
 
-Defend your blue crystal across 20 wave-based levels. Build a deck of up to 6 troops, spend **mana** in battle to deploy them on a single lane, and use type advantage to carve through escalating enemy waves. Between levels, spend **global coins** to unlock troops and upgrade your mana capacity / regen. Shatter the red crystal (or clear the final boss wave) to win the stage.
+Defend your blue crystal across 20 wave-based levels. Build a deck of up to 6 troops, spend **mana** in battle to deploy them, and use type advantage to carve through escalating enemy waves. Between levels, spend **global coins** to unlock troops and upgrade mana regen / cap. Clear waves (and bosses at 10 & 20) to advance.
 
 ---
 
@@ -41,251 +41,217 @@ Main Menu
   → Troop Barracks (unlock / view roster)
   → Mana Lab (upgrade max mana + regen — meta)
   → Settings / Credits (CC0 attribution)
-  → Level Select (1–20, locked until previous cleared)
+  → Level Select (1–20)
        → Pre-level Deck Build (4–6 slots)
             → Battle (mana only)
-                 → Victory / Defeat → coins → back to map
+                 → Victory / Defeat → coins → map
 ```
 
-### Main menu (new)
-
-Must include: Play, Barracks, Mana Lab, Credits/Attribution, Quit. Title art uses CC0 crystals + lane mock; no Nintendo marks.
+Main menu: Play, Barracks, Mana Lab, Credits/Attribution, Quit.
 
 ---
 
-## 3. Combat kernel (inherits prototype)
+## 3. Combat kernel
 
 | Element | Spec |
 |---------|------|
-| Lane | Single 2.5D side lane; player left / enemy right |
-| Win | Enemy crystal 0 HP **or** final wave cleared (level rules) |
+| Lane | Single 2.5D; player left / enemy right |
+| Win | Clear all waves (boss levels: defeat boss wave) and/or crystal rules per level |
 | Lose | Player crystal 0 HP |
-| In-battle currency | **Mana only** (no coins in match) |
-| Cap on field | Start **4** deploy slots worth of presence; hard cap TBD (~8–12 units alive — balance later) |
-| Signature spell | Type Pulse retained as early unlock; later spells optional |
+| In-battle currency | **Mana only** (deploys + Type Pulse). No gold in-match |
+| Field cap | Balance TBD (~8–12 alive) |
+| Signature spell | Type Pulse (early unlock) |
 
 ---
 
-## 4. Wave system (PvZ-style)
+## 4. Type chart — LOCKED (8 types)
 
-Each level is a sequence of **waves**, not a continuous infinite spawn.
+**IDs:** STN Stone · STR Strike · MND Mind · BLM Bloom · EMB Ember · TID Tide · GAL Gale · SHD Shade  
+
+**Multipliers:** Super **×1.5** · Neutral **×1** · Resist **×0.5** · no immunities.  
+**Rule:** If A is Super vs B, then B vs A is Resist.
+
+### Teach cycles
+1. **World ring:** Ember → Bloom → Tide → Gale → Ember  
+2. **Force ring:** Strike → Stone → Shade → Mind → Strike  
+
+### Super summary
+
+| Attacker | Super (×1.5) vs | Weak to (takes ×1.5) |
+|----------|-----------------|----------------------|
+| Ember | Bloom, Stone | Gale, Mind |
+| Bloom | Tide, Shade | Ember, Strike |
+| Tide | Gale, Mind | Bloom, Stone |
+| Gale | Ember, Strike | Tide, Shade |
+| Strike | Stone, Bloom | Gale, Mind |
+| Stone | Shade, Tide | Ember, Strike |
+| Shade | Mind, Gale | Bloom, Stone |
+| Mind | Strike, Ember | Tide, Shade |
+
+Each type: exactly **2** strengths and **2** weaknesses.
+
+### Full matrix (rows = attacker, cols = defender)
+
+`S` = ×1.5, `R` = ×0.5, `.` = ×1
+
+```
+     STN STR MND BLM EMB TID GAL SHD
+STN   .   R   .   .   R   S   .   S
+STR   S   .   R   S   .   .   R   .
+MND   .   S   .   .   S   R   .   R
+BLM   .   R   .   .   R   S   .   S
+EMB   S   .   R   S   .   .   R   .
+TID   R   .   S   R   .   .   S   .
+GAL   .   S   .   .   S   R   .   R
+SHD   R   .   S   R   .   .   S   .
+```
+
+### Jam remap
+Rock/Fighting/Psychic/Fairy → Stone/Strike/Mind/Bloom. Volt/Steel cut (use Gale/Tide/Stone fantasy instead).
+
+### Boss dual-types
+- **L10 Tidebound Colossus:** Tide / Stone  
+- **L20 Veilpyre Sovereign:** Shade / Ember  
+
+Primary-vs-primary for dual-type resolution in v1 (same as GDD v1.0 simplify rule) unless CodeBot implements dual averaging later.
+
+### Roster weight (P+E = 20+20)
+
+| Type | Player | Enemy |
+|------|--------|-------|
+| Stone | 3 | 3 |
+| Strike | 3 | 3 |
+| Mind | 3 | 2 |
+| Bloom | 3 | 2 |
+| Ember | 2 | 3 |
+| Tide | 2 | 3 |
+| Gale | 2 | 2 |
+| Shade | 2 | 2 |
+
+Starters: Stone / Strike / Mind / Bloom (teach Force + soft support).
+
+---
+
+## 5. Economy — LOCKED formulas
+
+### In-match mana
+- `start_mana = 40`
+- `base_regen = 2 / s`
+- `base_cap = 100`
+- Deploy + Pulse spend mana only
+
+**Troop deploy mana (tier t = 1…):**  
+`troop_mana(t) = round(12 * 1.45^(t-1))` → 12 / 17 / 25 / 37 / 53 …
+
+**HP/DPS scale:** `*(cost/12)^0.55` (sublinear so expensive ≠ always best)
+
+### Meta coins (outside battle)
+**Mana Lab regen upgrade n:** `regen_coin(n) = round(50 * 1.50^n)`  
+**Mana Lab cap upgrade n:** `cap_coin(n) = round(40 * 1.55^n)`  
+
+**Level clear coins:**  
+`level_coins(L) = round(25 * 1.22^(L-1))`  
++ boss bonus **150 @ L10** / **400 @ L20**
+
+Troop unlock coin costs: geometric (CodeBot may use `round(50 * 1.35^(t-1))` or align to ResearchBot spreadsheet in research-campaign-v1.md).
+
+### Retire
+In-match gold + kill bounty gold in campaign mode. Optional post-level coin crumb OK.
+
+---
+
+## 6. Waves (PvZ-style) — LOCKED pacing notes
 
 | Concept | Spec |
 |---------|------|
-| Wave banner | “Wave N / M” toast + short pause (~1.5s) |
-| Intra-wave | Enemies spawn on a curve (front-loaded or back-loaded per level) |
-| Between waves | Brief downtime (~3–5s) for mana regen / redeploy |
-| Flag wave | Last wave of a level is denser; boss levels replace last wave with boss + adds |
-| Progress | Clearing all waves + crystal rules = level clear |
+| Wave banner | “Wave N / M” + ~1.5s pause |
+| Between waves | ~3–5s lull |
+| Flag / huge wave | Denser; boss levels replace finale |
 
-**Level structure (default):** Levels 1–9 → 3–5 waves · Level 10 boss · Levels 11–19 → 5–7 waves · Level 20 final boss.
+**Anchors:**
+- **L1:** 3 waves — teach Strike / Stone  
+- **L10:** 5 waves + 2 huge flags — **Tidebound Colossus**  
+- **L20:** 6 waves + 3 flags + enrage — **Veilpyre Sovereign**  
 
----
-
-## 5. Campaign: 20 levels + bosses
-
-| Level | Theme beat | Special |
-|-------|------------|---------|
-| 1–3 | Teach deploy + types | Soft tutor |
-| 4–6 | Introduce 2nd type pressure | |
-| 7–9 | Economy stress (mana) | |
-| **10** | **Boss A** | Mid-campaign gate |
-| 11–14 | New types / armor waves | Deck slot 5 already unlocked |
-| 15–19 | Mixed affinity hell | |
-| **20** | **Boss B** | Finale + deck slot 6 already unlocked |
-
-**Boss A (L10):** High HP, phase 2 at 50% (summons a mini-wave).  
-**Boss B (L20):** Higher HP, two adds every 20s, weak to a specific type triangle (telegraphed).
+Default band: L1–9 → 3–5 waves · L11–19 → 5–7 waves. Full per-level tables in `research-campaign-v1.md`.
 
 ---
 
-## 6. Rosters
-
-### 6.1 Player troops — **20** unlockable
-
-Design target: **20 unique player-side troops**.  
-Milestone A (first shippable): **12** fully distinct; remaining 8 may be typed variants until art lands.
-
-Each troop defines: `id`, display name (original), type(s), role tag, unlock cost (coins), deploy **mana** cost, HP, ATK, ASPD, special (1 line max).
-
-### 6.2 Enemy troops — **20** + **2 bosses**
-
-**20** enemy unit types for wave composition + **Boss A** + **Boss B**.  
-Enemies do not use the player deck; they are authored per wave table.
-
-### 6.3 Earlier note “15 each team”
-
-Interpreted as an **interim roster milestone** (15 player / 15 enemy) on the way to **20 / 20 + 2 bosses**. GDD locks the north star at 20/20+2.
-
-### 6.4 Starter set
-
-New campaign starts with **4 unlocked troops** covering different types so affinity matters immediately.
-
----
-
-## 7. Type chart (Pokémon-inspired, IP-safe)
-
-**8 types** (enough meaning, not a full Pokédex):
-
-| ID | Name | Beats (×1.5) | Weak to (×0.65) |
-|----|------|--------------|-----------------|
-| ROCK | Rock | BOLT, SHADE | TIDE, FIGHT |
-| FIGHT | Fight | ROCK, IRON | MIND, BLOOM |
-| MIND | Mind | FIGHT, BLOOM | SHADE, BOLT |
-| BLOOM | Bloom | FIGHT, TIDE | ROCK, SHADE |
-| BOLT | Bolt | MIND, TIDE | ROCK, IRON |
-| TIDE | Tide | ROCK, BOLT | BLOOM, IRON |
-| SHADE | Shade | MIND, BLOOM | ROCK, FIGHT |
-| IRON | Iron | BOLT, TIDE | FIGHT, SHADE |
-
-- Dual-type troops: multiply once per attack using **attacker primary vs defender primary** for v1 (simplify).  
-- Neutral = ×1.0.  
-- HUD: small attacker→defender icon flash on advantage hits.  
-- ResearchBot may tune multipliers; DocumentBot owns names in GDD.
-
----
-
-## 8. Deck system
+## 7. Deck system
 
 | Rule | Spec |
 |------|------|
-| Max carry | **6** troop IDs in deck |
-| Start | **4** deck slots unlocked |
-| Level 10 clear | Unlock **5th** deck slot |
-| Level 20 clear | Unlock **6th** deck slot |
-| Pre-level | Player fills unlocked slots from **owned** roster |
-| In battle | Hotkeys / buttons for each deck slot (mana cost shown) |
-
-Cannot put locked/unowned troops in deck.
+| Max carry | **6** |
+| Start | **4** slots |
+| Clear L10 | Unlock **5th** |
+| Clear L20 | Unlock **6th** |
+| Fill from | Owned roster only |
 
 ---
 
-## 9. Dual economy
+## 8. Rosters & bosses
 
-### 9.1 Global coins (OUTSIDE battle only)
-
-Earn on: level clear (base + star bonus), first-clear bonus, optional daily later (out of scope).
-
-Spend on:
-
-- Unlocking troops in Barracks (exponential prices)
-- **Mana Lab** meta upgrades (max mana, regen speed)
-
-### 9.2 Mana (IN battle only)
-
-- Starts at `base_max` with `base_regen / sec` from Mana Lab rank
-- Spend only on troop deploy (+ optional Pulse / in-match mana upgrades)
-
-### 9.3 In-match mana upgrades
-
-During battle, spend mana on a small upgrade track:
-
-| Rank | Effect |
-|------|--------|
-| +1 | +regen |
-| +2 | +max mana |
-| +3 | +regen |
-| … | Caps at rank 5 for v1 |
-
-Lets players bank for “bigger troops” mid-level (user ask).
+- **20** player unlockable · **20** enemy types · **2** bosses  
+- Interim milestone: 15/15 OK before full 20/20  
+- Asset min pull: 12+12+2 (see `docs/ASSET_REQUIREMENTS_v2.md`)  
+- Update type bucket names in asset reqs to Stone/Strike/Mind/Bloom/Ember/Tide/Gale/Shade
 
 ---
 
-## 10. Exponential curves (design targets)
-
-Use geometric growth so late troops feel premium.
-
-**Unlock coin cost (troop tier t = 1…20):**  
-`coins(t) = round(50 * 1.35^(t-1))`  
-→ ~50, 68, 91, … climbing into thousands for top tiers.
-
-**Deploy mana cost (power tier p):**  
-`mana(p) = round(10 * 1.28^(p-1))`
-
-**Power budget (HP×ATK proxy):**  
-`power(p) ≈ 100 * 1.22^(p-1)`  
-(Tune so mana efficiency isn’t strictly linear — high tier = spike, not always optimal.)
-
-**Mana Lab meta:**  
-Rank r cost `coins = round(80 * 1.4^r)`; each rank +10% max or +8% regen (alternating).
-
-ResearchBot to validate numbers in a spreadsheet pass; CodeBot implements constants table.
-
----
-
-## 11. Phased delivery (so CodeBot doesn’t boil the ocean)
+## 9. Phased delivery
 
 | Phase | Scope | Exit |
 |-------|-------|------|
-| **P0** | Keep current playable kernel + Must QA stamp | TesterBot pass on live tunnel |
-| **P1** | Main menu + Level Select shell (levels 1–3 wave stub) | Click-to-battle path |
-| **P2** | Wave director + coin rewards + Barracks unlock 8 troops | 3-level loop fun |
-| **P3** | Type chart 8×8 wired to all units | Matchups feel meaningful |
-| **P4** | Expand toward 15/15 roster + Mana Lab | Milestone “15 each” |
-| **P5** | Full 20/20 + Boss L10 | Mid campaign |
-| **P6** | Boss L20 + deck slots 5–6 + polish | Campaign complete |
+| **P0** | Kernel + Must QA | TesterBot stamp |
+| **P1** | Main menu + Level Select (L1–3 stub) | Click-to-battle |
+| **P2** | Wave director + coins + Barracks (8 troops) | 3-level loop |
+| **P3** | Wire **this** 8×8 chart + mana formulas | Matchups meaningful |
+| **P4** | Toward 15/15 + Mana Lab | Milestone |
+| **P5** | 20/20 + Boss L10 | Mid campaign |
+| **P6** | Boss L20 + deck 5–6 + polish | Complete |
 
-Asset pull (CodeBot) starts **immediately in parallel** with P1 (see `ASSET_REQUIREMENTS_v2.md`).
-
----
-
-## 12. Asset requirements (summary)
-
-Full list: **`docs/ASSET_REQUIREMENTS_v2.md`**
-
-| Need | Count |
-|------|-------|
-| Player sprites | 20 (min first pull 12) |
-| Enemy sprites | 20 (min 12) |
-| Bosses | 2 |
-| UI / menu / meta | Kenney UI packs |
-| Env | Kenney / OGA grass-path |
-| License | **CC0 / open only** |
-
-CodeBot downloads from Kenney + OpenGameArt; writes `UNITS_MANIFEST.md` + `ATTRIBUTION.md`.
+**P3 gate:** Chart + formulas in this GDD are **stamped** — CodeBot may wire (do not invent alternate chart).
 
 ---
 
-## 13. Explicit non-goals
+## 10. Assets
 
-Official Pokémon names/sprites/audio · capture/evolution Pokédex · multiplayer · multi-lane · paid asset packs without clear license · shipping all 40 units before P1 menu exists.
-
----
-
-## 14. Team handoffs
-
-| Role | Now |
-|------|-----|
-| **DocumentBot** | Owns this GDD + asset requirements |
-| **ResearchBot** | Type-chart tune, exponential curve validation, PvZ wave pacing tables |
-| **CodeBot** | Pull CC0 assets per requirements; implement by phase |
-| **TesterBot** | Finish Must #2–4 stamp; then phase playtests |
-| **ProjectBot** | Scope/schedule; re-export tunnels |
+See `docs/ASSET_REQUIREMENTS_v2.md`. CC0 only. CodeBot: Kenney + OGA → `UNITS_MANIFEST.md` + `ATTRIBUTION.md`.
 
 ---
 
-## 15. Success criteria (campaign v1)
+## 11. Non-goals
 
-- [ ] Main menu → level 1 playable with waves  
-- [ ] Coins unlock ≥1 new troop; mana-only in battle  
-- [ ] Type chart changes outcomes (player can explain a counter)  
-- [ ] Deck 4 slots; slot 5 at L10; slot 6 at L20  
-- [ ] 20 levels authored (even if some reuse wave templates)  
-- [ ] Bosses at 10 and 20  
-- [ ] All art CC0-attributed  
-- [ ] Roster north star 20 player / 20 enemy / 2 bosses (15/15 interim OK)
+Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventing a different type chart at P3 · shipping all 40 units before P1 menu.
 
 ---
 
-## 16. Changelog
+## 12. Team
 
-- **v1.0 (2026-09-20):** Campaign expansion per user: rosters, type chart, waves, 20 levels, bosses, dual economy, deck unlocks, exponential costs, phased plan, asset requirements handoff.
-- **v0.2.1:** P0 Must #2–4 implemented · pending QA.
-- **v0.2:** Fun-factor backlog ranked.
-- **v0.1:** 2h prototype lock.
+| Role | Agent |
+|------|--------|
+| GDD | **DocumentBot** |
+| Campaign numbers | ResearchBot (`research-campaign-v1.md`) |
+| Build / assets | CodeBot |
+| QA | TesterBot |
+| PM | ProjectBot |
 
 ---
 
-## Appendix A — Prototype carry-forward
+## 13. Success criteria
 
-Still true unless a phase replaces it: keys 1–4 style deploy, Type Pulse, kill bounty, soft tutor, early grace verify, Origin polish SHAs for kernel combat.
+- [ ] Menu → L1 waves playable  
+- [ ] Mana-only battle; coins meta  
+- [ ] Stamped 8-type chart changes outcomes  
+- [ ] Deck 4 / 5@L10 / 6@L20  
+- [ ] 20 levels; bosses at 10 & 20 named above  
+- [ ] CC0 attribution  
+- [ ] Roster 20/20+2 (15/15 interim OK)
+
+---
+
+## Changelog
+
+- **v1.1 (2026-09-20):** Stamped ResearchBot campaign lock — 8 types (Stone…Shade), ×1.5/0.5 matrix, mana/coin formulas, PvZ anchors, boss names; retired in-match gold for campaign; P3 unblocked.
+- **v1.0:** Campaign expansion skeleton.
+- **v0.2.x:** Fun-factor Must backlog / jam kernel.
