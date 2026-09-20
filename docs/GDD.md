@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3 (Roster + curriculum stamped · unlock soft-ceiling locked)  
+**Version:** 1.3.1 (Tonight handoff — GDD + asset scouting docs complete)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -415,8 +415,24 @@ L10 / L20 = deck slots (not troop unlocks). L18 = Lab / coin sink (no new troop)
 
 Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1.md` §3. CodeBot maps IDs → sprites in `UNITS_MANIFEST.md`.
 
+
+---
+
+## Tonight handoff (2026-09-20)
+
+**User stop line:** complete through **asset scouting + full GDD docs**; continue build tomorrow. TesterBot remains paused.
+
+| Doc | Status | Location |
+|-----|--------|----------|
+| GDD v1.3 | **Complete** for tonight | `docs/GDD.md` (chart, economy, waves, roster, curriculum, Must QA appendix) |
+| Asset requirements v2 | **Complete** + named scouting checklist | `docs/ASSET_REQUIREMENTS_v2.md` |
+| Research sources | Reference | `research-campaign-v1.md`, `research-roster-curriculum-v1.md` |
+
+**Tomorrow:** CodeBot continues Early Grace → packs on disk → P1/P2; DocumentBot amends GDD only if build discovers gaps; TesterBot waits for explicit go.
+
 ## Changelog
 
+- **v1.3.1 (2026-09-20):** Tonight handoff — full GDD + named asset scouting checklist; stop line for build resume tomorrow.
 - **v1.3 (2026-09-20):** Roster 20+20+2 + L1–20 curriculum (App E/F); unlock soft-ceiling `min(900, round(40*1.22^k))` resolves 21.7k vs 6.5k; wave counts follow App D.
 - **v1.2 (2026-09-20):** Folded ResearchBot economy + wave-band tables (App C/D) for CodeBot P2/P3; TesterBot paused per user.
 - **v1.1.1 (2026-09-20):** TesterBot Must-build FAIL — Must #1 Verify→harden; #2–4 stay Implemented · pending QA (partial).
