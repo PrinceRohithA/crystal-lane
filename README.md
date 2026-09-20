@@ -24,6 +24,8 @@ git push -u github cursor/cc0-assets-and-polish-831a
 
 GitHub `main` was seeded separately (unrelated history). Prefer pushing the polish branch and opening a PR rather than force-updating `main`. To replace `main` after review: `git push github cursor/cc0-assets-and-polish-831a:main` (may need `--force-with-lease` because the histories diverge).
 
+PNG/TTF/`index.pck`/`index.wasm` must go through git (or the `Publish CC0 assets and Web export` Action). They are well under GitHub’s 100MB file limit (`index.wasm` is ~34MB) but the Contents API / MCP file tools cannot send those binaries intact. The Action downloads the same CC0 Kenney + MELLE packs, headless-exports Godot 4.3 Web, and commits `assets/` + `build/web/` onto `main`.
+
 ## How to open (editor)
 
 1. Install **Godot 4.3+** from [godotengine.org](https://godotengine.org/download).
