@@ -31,8 +31,8 @@ const SPELL_DAMAGE := 24
 const SPELL_SLOW := 0.45
 const SPELL_SLOW_TIME := 2.8
 
-const ENEMY_FIRST_SPAWN := 22.0
-const ENEMY_INTERVAL := 11.0
+const ENEMY_FIRST_SPAWN := 18.0
+const ENEMY_INTERVAL := 10.0
 const ENEMY_INTERVAL_MIN := 3.4
 const ENEMY_RAMP_AFTER := 90.0
 const ENEMY_EARLY_SOFT_CAP := 1
@@ -91,6 +91,8 @@ func _ready() -> void:
 	campaign = GameState.campaign_mode
 	_reset_economy()
 	hud = $HUD
+	if hud:
+		hud.add_to_group("crystal_hud")
 	var field := FieldScript.new()
 	add_child(field)
 
@@ -166,6 +168,8 @@ func _emit_initial_state() -> void:
 		hud.set_enemy_hp(enemy_tower.hp, TowerScript.MAX_HP)
 	if campaign:
 		_emit_toast("Campaign L%d - mana only" % GameState.selected_level)
+	else:
+		_emit_toast("Practice: 2 Melee vs Stone Tank = SE toast")
 
 
 func _process(delta: float) -> void:
@@ -271,7 +275,15 @@ func _on_enemy_timer() -> void:
 	_enemy_timer.wait_time = _next_enemy_interval()
 	var kind: int
 	if _match_time < ENEMY_RAMP_AFTER:
-		var early := [UnitScript.Kind.RANGED, UnitScript.Kind.SUPPORT, UnitScript.Kind.MELEE, UnitScript.Kind.RANGED, UnitScript.Kind.SUPPORT]
+		# Include Stone Tank early so Melee SE path is testable before 90s.
+		var early := [
+			UnitScript.Kind.TANK,
+			UnitScript.Kind.MELEE,
+			UnitScript.Kind.TANK,
+			UnitScript.Kind.RANGED,
+			UnitScript.Kind.MELEE,
+			UnitScript.Kind.SUPPORT,
+		]
 		kind = early[(_enemy_spawns - 1) % early.size()]
 	else:
 		var late := [UnitScript.Kind.MELEE, UnitScript.Kind.TANK, UnitScript.Kind.RANGED, UnitScript.Kind.MELEE, UnitScript.Kind.SUPPORT]
@@ -316,8 +328,8 @@ func _on_combat_note(text: String) -> void:
 		return
 	if _affinity_toast_cd > 0.0:
 		return
-	_affinity_toast_cd = 1.5
-	_emit_toast(text, 3.0)
+	_affinity_toast_cd = 1.2
+	_emit_toast(text, 3.2)
 
 
 func _on_unit_died(unit) -> void:
@@ -335,6 +347,8 @@ func _on_unit_died(unit) -> void:
 
 func _emit_toast(text: String, hold: float = 1.8) -> void:
 	toast_requested.emit(text)
+	if hud != null and hud.has_method("show_toast"):
+		hud.show_toast(text)
 	_toast_busy_until = _match_time + hold
 
 

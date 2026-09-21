@@ -28,6 +28,7 @@ var _font_title: Font
 
 func bind_game(p_game: Node) -> void:
 	game = p_game
+	add_to_group("crystal_hud")
 	game.economy_changed.connect(_on_economy)
 	game.toast_requested.connect(show_toast)
 	game.match_over.connect(_on_match_over)
@@ -44,17 +45,18 @@ func _apply_mode_copy() -> void:
 	if _campaign():
 		_hint2.text = "Mana deploys + Pulse. Clear waves to win."
 		if _top_hint:
-			_top_hint.text = "Keys 1-4 deploy (mana)  |  Space = Type Pulse  |  Stone>Strike>Bloom>Mind>Stone"
+			_top_hint.text = "Keys 1-4 deploy (mana)  |  Space Pulse  |  Strike>Stone SE, Stone vs Strike resist"
 		if _gold_label:
 			_gold_label.text = "Campaign"
 	else:
-		_hint2.text = "Enemy kill = +15 gold toast. Mana fuels Type Pulse."
+		_hint2.text = "Kill +15g toast. 2 Melee vs Tank = SE! Strike > Stone"
 		if _top_hint:
-			_top_hint.text = "1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  type matchups toast on hit"
+			_top_hint.text = "1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  Strike>Stone SE"
 
 
 func _ready() -> void:
-	layer = 10
+	layer = 20
+	add_to_group("crystal_hud")
 	_font = load("res://assets/ui/KenneyFutureNarrow.ttf") as Font
 	_font_title = load("res://assets/ui/KenneyFuture.ttf") as Font
 	_build_ui()
@@ -89,11 +91,12 @@ func show_toast(text: String) -> void:
 		return
 	_toast.text = text
 	_toast.visible = true
+	_toast.z_index = 50
 	if _toast_panel:
 		_toast_panel.visible = true
-	# Longer hold so bounty / tutor / affinity are readable
+		_toast_panel.z_index = 49
 	if text.begins_with("+") or text.find("gold") >= 0 or text.find("Tutor") >= 0 or text.find("SE") >= 0 or text.find("resist") >= 0:
-		_toast_time = 3.2
+		_toast_time = 3.5
 	elif text.length() > 28:
 		_toast_time = 3.0
 	else:
@@ -136,7 +139,6 @@ func _on_match_over(player_won: bool) -> void:
 func _btn_label(kind: int, cost: int) -> String:
 	var info: Dictionary = UnitScript.DISPLAY[kind]
 	var unit: String = "%dg" % cost if not _campaign() else "%dm" % cost
-	# ASCII-only so Kenney glyphs never box out the key digit
 	return "%d %s\n%s %s  %s" % [kind + 1, info["role"], info["affinity"], info["name"], unit]
 
 
@@ -217,7 +219,7 @@ func _build_ui() -> void:
 	_mana_label.size = Vector2(236, 20)
 	econ.add_child(_mana_label)
 
-	_hint2 = _make_label("Enemy kill = +15 gold toast. Mana fuels Type Pulse.", 11, Color("5a5850"))
+	_hint2 = _make_label("Kill +15g toast. 2 Melee vs Tank = SE! Strike > Stone", 11, Color("5a5850"))
 	_hint2.position = Vector2(12, 72)
 	_hint2.size = Vector2(244, 20)
 	econ.add_child(_hint2)
@@ -254,6 +256,7 @@ func _build_ui() -> void:
 	_toast_panel.position = Vector2(340, 100)
 	_toast_panel.size = Vector2(600, 56)
 	_toast_panel.visible = false
+	_toast_panel.z_index = 49
 	_toast_panel.add_theme_stylebox_override("panel", _stylebox(Color("fff8e0"), Color("1c2834")))
 	_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_toast_panel)
@@ -264,9 +267,10 @@ func _build_ui() -> void:
 	_toast.position = Vector2(340, 100)
 	_toast.size = Vector2(600, 56)
 	_toast.visible = false
+	_toast.z_index = 50
 	root.add_child(_toast)
 
-	_top_hint = _make_label("1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  type matchups toast on hit", 13, Color("1c2834"))
+	_top_hint = _make_label("1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  Strike>Stone SE", 13, Color("1c2834"))
 	_top_hint.position = Vector2(280, 14)
 	_top_hint.size = Vector2(880, 24)
 	root.add_child(_top_hint)
@@ -372,7 +376,6 @@ func _make_button(text: String, pos: Vector2, size: Vector2, tex_path: String = 
 	b.text = text
 	b.position = pos
 	b.size = size
-	# Default theme font for digits — Kenney Future Narrow often lacks clear 1-4 glyphs
 	b.add_theme_font_size_override("font_size", 14)
 	b.add_theme_color_override("font_color", Color("1c2834"))
 	var tex := CrystalArt.tex(tex_path) if tex_path != "" else null
