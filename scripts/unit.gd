@@ -40,12 +40,14 @@ const DISPLAY := {
 	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support", "affinity": "Bloom" },
 }
 
-const KIND_TO_TYPE := {
-	Kind.TANK: GddBalance.Type.STN,
-	Kind.MELEE: GddBalance.Type.STR,
-	Kind.RANGED: GddBalance.Type.MND,
-	Kind.SUPPORT: GddBalance.Type.BLM,
-}
+# Inline 4x4 GDD subset (Stone/Strike/Mind/Bloom) — do not rely on GddBalance statics in HTML5.
+# Rows = attacker kind, cols = defender kind. 1.5 SE / 1.0 neutral / 0.5 resist.
+const KERNEL_MULT := [
+	[1.0, 0.5, 1.0, 1.0], # Stone: resist vs Strike
+	[1.5, 1.0, 0.5, 1.5], # Strike: SE vs Stone + Bloom; resist vs Mind
+	[1.0, 1.5, 1.0, 1.0], # Mind: SE vs Strike
+	[1.0, 0.5, 1.0, 1.0], # Bloom: resist vs Strike
+]
 
 var team: Team = Team.PLAYER
 var kind: Kind = Kind.MELEE
@@ -104,12 +106,12 @@ func get_hit_position() -> Vector2:
 	return global_position + Vector2(0, -18)
 
 
-static func gdd_type_for_kind(p_kind: int) -> int:
-	return int(KIND_TO_TYPE.get(p_kind, GddBalance.Type.STR))
-
-
 static func affinity_multiplier(attacker_kind: int, defender_kind: int) -> float:
-	return GddBalance.multiplier(gdd_type_for_kind(attacker_kind), gdd_type_for_kind(defender_kind))
+	if attacker_kind < 0 or defender_kind < 0:
+		return 1.0
+	if attacker_kind >= KERNEL_MULT.size() or defender_kind >= KERNEL_MULT[attacker_kind].size():
+		return 1.0
+	return float(KERNEL_MULT[attacker_kind][defender_kind])
 
 
 func apply_slow(multiplier: float, duration: float) -> void:
@@ -233,7 +235,7 @@ func _find_target() -> Node2D:
 		if d < best_d:
 			best_d = d
 			best = u
-		if u.kind == Kind.TANK and d < best_tank_d:
+		if int(u.kind) == Kind.TANK and d < best_tank_d:
 			best_tank = u
 			best_tank_d = d
 	if best_tank != null:
@@ -268,11 +270,11 @@ func _ally_blocking() -> bool:
 
 
 func _notify_affinity(text: String) -> void:
-	# Signal path (game connects) + direct group fallback so toast cannot silently drop.
+	# Triple path for HTML5: signal, game group, HUD group.
 	combat_note.emit(text)
-	var g := get_tree().get_first_node_in_group("crystal_game")
-	if g != null and g.has_method("_on_combat_note"):
-		g._on_combat_note(text)
+	if is_inside_tree():
+		get_tree().call_group("crystal_game", "_on_combat_note", text)
+		get_tree().call_group("crystal_hud", "show_toast", text)
 
 
 func _try_attack(target: Node2D) -> void:
@@ -285,20 +287,19 @@ func _try_attack(target: Node2D) -> void:
 		tw.tween_property(_visual, "position:x", lunge, 0.08)
 		tw.tween_property(_visual, "position:x", 0.0, 0.12)
 	var dmg := damage
-	# Do NOT use `is BattleUnit` — class_name checks often fail on script.new() units in HTML5.
 	var hit_unit: bool = target != null and is_instance_valid(target) and target.is_in_group("units")
 	if hit_unit:
-		var def_kind: int = int(target.kind)
-		var mult := affinity_multiplier(kind, def_kind)
+		var def_kind: int = int(target.get("kind"))
+		var mult: float = affinity_multiplier(int(kind), def_kind)
 		dmg = maxi(1, int(round(float(dmg) * mult)))
-		if team == Team.PLAYER and _note_cd <= 0.0 and absf(mult - GddBalance.MULT_NEUTRAL) > 0.05:
-			var atk: String = str(DISPLAY[kind]["affinity"])
+		if team == Team.PLAYER and _note_cd <= 0.0 and absf(mult - 1.0) > 0.05:
+			var atk: String = str(DISPLAY[int(kind)]["affinity"])
 			var def: String = str(DISPLAY[def_kind]["affinity"])
-			if mult >= GddBalance.MULT_SUPER - 0.05:
+			if mult > 1.05:
 				_notify_affinity("SE! %s > %s" % [atk, def])
 			else:
 				_notify_affinity("resist %s vs %s" % [atk, def])
-			_note_cd = 1.6
+			_note_cd = 1.2
 	elif kind == Kind.MELEE and target != null and target.has_method("take_damage") and not hit_unit:
 		dmg += 4
 	if uses_projectile:
