@@ -152,7 +152,7 @@ func restart_match() -> void:
 
 
 func _mana_cap() -> float:
-	return GddBalance.CAMPAIGN_BASE_CAP if campaign else MAX_MANA
+	return GameState.campaign_cap() if campaign else MAX_MANA
 
 
 func _emit_initial_state() -> void:
@@ -175,7 +175,7 @@ func _process(delta: float) -> void:
 			var add := int(gold_bank)
 			gold += add
 			gold_bank -= float(add)
-	var regen := GddBalance.CAMPAIGN_BASE_REGEN if campaign else MANA_PER_SEC_ARCADE
+	var regen := GameState.campaign_regen() if campaign else MANA_PER_SEC_ARCADE
 	mana = minf(mana + regen * delta, _mana_cap())
 	economy_changed.emit(gold, mana, _mana_cap())
 	_maybe_tutor()
