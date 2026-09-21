@@ -60,6 +60,7 @@ var _tutor_step: int = 0
 var _next_tutor_at: float = 0.9
 var _toast_busy_until: float = 0.0
 var _silence_bounty_toast: bool = false
+var _affinity_toast_cd: float = 0.0
 
 var player_tower
 var enemy_tower
@@ -86,6 +87,7 @@ func alive_count() -> int:
 
 func _ready() -> void:
 	randomize()
+	add_to_group("crystal_game")
 	campaign = GameState.campaign_mode
 	_reset_economy()
 	hud = $HUD
@@ -145,6 +147,7 @@ func _reset_economy() -> void:
 	_next_tutor_at = 0.9
 	_toast_busy_until = 0.0
 	_silence_bounty_toast = false
+	_affinity_toast_cd = 0.0
 
 
 func restart_match() -> void:
@@ -169,6 +172,7 @@ func _process(delta: float) -> void:
 	if is_over:
 		return
 	_match_time += delta
+	_affinity_toast_cd = maxf(_affinity_toast_cd - delta, 0.0)
 	if not campaign:
 		gold_bank += GOLD_PER_SEC * delta
 		if gold_bank >= 1.0:
@@ -299,8 +303,7 @@ func _spawn_unit(team: int, kind: int) -> void:
 	var tower: Node2D = enemy_tower if team == UnitScript.Team.PLAYER else player_tower
 	unit.setup(team, kind, Vector2(x, y), tower)
 	unit.died.connect(_on_unit_died)
-	if unit.has_signal("combat_note"):
-		unit.combat_note.connect(_on_combat_note)
+	unit.combat_note.connect(_on_combat_note)
 	if team == UnitScript.Team.ENEMY and (not campaign) and _match_time < ENEMY_RAMP_AFTER:
 		unit.max_hp = maxi(8, int(round(float(unit.max_hp) * ENEMY_EARLY_STAT_SCALE)))
 		unit.hp = unit.max_hp
@@ -311,7 +314,10 @@ func _spawn_unit(team: int, kind: int) -> void:
 func _on_combat_note(text: String) -> void:
 	if is_over:
 		return
-	_emit_toast(text, 2.6)
+	if _affinity_toast_cd > 0.0:
+		return
+	_affinity_toast_cd = 1.5
+	_emit_toast(text, 3.0)
 
 
 func _on_unit_died(unit) -> void:
