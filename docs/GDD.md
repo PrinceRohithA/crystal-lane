@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3.1 (Tonight handoff — GDD + asset scouting docs complete)  
+**Version:** 1.3.2 (P1–P3 landed on tip 63f7877 · P4–P6 open)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -430,8 +430,24 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 **Tomorrow:** CodeBot continues Early Grace → packs on disk → P1/P2; DocumentBot amends GDD only if build discovers gaps; TesterBot waits for explicit go.
 
+
+---
+
+## Implementation progress (CodeBot · 2026-09-21)
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| P0 Early Grace | In tip | Softer waves on polish |
+| P1 Menu / L1–3 | **Done** | Tip includes menu + campaign L1–3 |
+| P2 Waves + Barracks | **Done** | P05–P08 unlockable; mana-only campaign + wave director |
+| P3 Type chart | **Partial→wired** | 8-type chart live for Stone/Strike/Mind/Bloom starters |
+| P4–P6 | **Open** | Full 20/20 combat, Mana Lab, bosses L10/L20, deck slots 5–6 |
+
+**Build tip:** `63f7877` on polish branch (ahead of older export `ccdf42d`).
+
 ## Changelog
 
+- **v1.3.2 (2026-09-21):** CodeBot P1–P3 on polish `63f7877`; P4–P6 still open.
 - **v1.3.1 (2026-09-20):** Tonight handoff — full GDD + named asset scouting checklist; stop line for build resume tomorrow.
 - **v1.3 (2026-09-20):** Roster 20+20+2 + L1–20 curriculum (App E/F); unlock soft-ceiling `min(900, round(40*1.22^k))` resolves 21.7k vs 6.5k; wave counts follow App D.
 - **v1.2 (2026-09-20):** Folded ResearchBot economy + wave-band tables (App C/D) for CodeBot P2/P3; TesterBot paused per user.
