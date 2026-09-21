@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3.4 (Must #1 Done on tip 20b1dc9)  
+**Version:** 1.3.5 (09e20a3 — tutor/bounty/labels PASS; affinity toast pending)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -257,20 +257,24 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 
 ---
 
+---
+
 ## Appendix B — Kernel Must QA (latest)
 
-### TesterBot 2026-09-21 · tip `20b1dc9` · tunnel electron-reforms-march-louisiana
-**Must #1: PASS / Done.** Campaign L1 blue survived past 60s passive (~120s to defeat). Active pressure can still lose around ~60s — within bar.
+### TesterBot 2026-09-21 · tip `20b1dc9`
+**Must #1: Done** — Campaign L1 pacing PASS (≥45–60s).
 
-| Must | Status |
+### TesterBot 2026-09-21 · tip `09e20a3` · tunnel liberal-configuration-css-appraisal
+Visibility recheck (do **not** stamp Must #2–4 Done yet):
+
+| Item | Status |
 |------|--------|
-| #1 Early Grace / Pressure Curve | **Done** (tip `20b1dc9`) |
-| #2 Soft Tutor | Open follow-up — visibility / not fully verified |
-| #3 Kill Bounty | Open follow-up — feedback visibility |
-| #4 Affinity | Open follow-up — feedback visibility |
-| HUD | Garbled glyph labels on 1–4 — polish open |
+| Soft tutor (`Tutor:` prefix) | **Verified PASS** |
+| Kill bounty toast | **Verified PASS** |
+| ASCII 1–4 spawn labels | **Verified PASS** |
+| Affinity SE / resist combat toasts | **FAIL** — legend only; needs `SE!` / resist combat feedback |
 
-No further Grace harden needed for Must #1. Prior FAIL on `3e24ccf` superseded.
+**GDD stamp rule:** Must #1 Done. Tutor / bounty / labels noted verified. Affinity stays **Implemented · pending QA**. Must #2–4 block as a set stays open until affinity passes.
 
 
 ## Appendix C — Economy tables (ResearchBot lock, for CodeBot)
@@ -450,6 +454,7 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 ## Changelog
 
+- **v1.3.5 (2026-09-21):** tip `09e20a3` — tutor/bounty/labels verified; affinity SE/resist toast FAIL; #2–4 not Done.
 - **v1.3.4 (2026-09-21):** TesterBot tip `20b1dc9` — Must #1 **Done**. Follow-ups: bounty/tutor/affinity visibility + glyph labels.
 - **v1.3.3 (2026-09-21):** TesterBot tip `3e24ccf` FAIL — Must #1 Verify→harden (Campaign L1 <30s).
 - **v1.3.2 (2026-09-21):** CodeBot P1–P3 on polish `63f7877`; P4–P6 still open.
