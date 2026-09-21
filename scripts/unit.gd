@@ -2,6 +2,7 @@ extends Node2D
 class_name BattleUnit
 
 signal died(unit)
+signal combat_note(text: String)
 
 enum Team { PLAYER, ENEMY }
 enum Kind { TANK, MELEE, RANGED, SUPPORT }
@@ -39,7 +40,6 @@ const DISPLAY := {
 	Kind.SUPPORT: { "name": "Gleamlet", "role": "Support", "affinity": "Bloom" },
 }
 
-# Kernel roles → GDD v1.3.1 8-type chart (P3).
 const KIND_TO_TYPE := {
 	Kind.TANK: GddBalance.Type.STN,
 	Kind.MELEE: GddBalance.Type.STR,
@@ -72,6 +72,7 @@ var _moving: bool = false
 var _visual: Node2D
 var _flash: float = 0.0
 var _using_sprites: bool = false
+var _note_cd: float = 0.0
 
 
 func setup(p_team: Team, p_kind: Kind, pos: Vector2, p_tower: Node2D) -> void:
@@ -146,6 +147,7 @@ func take_damage(amount: int) -> void:
 func _process(delta: float) -> void:
 	if is_dead:
 		return
+	_note_cd = maxf(_note_cd - delta, 0.0)
 	if _slow_left > 0.0:
 		_slow_left -= delta
 		if _slow_left <= 0.0:
@@ -275,7 +277,16 @@ func _try_attack(target: Node2D) -> void:
 		tw.tween_property(_visual, "position:x", 0.0, 0.12)
 	var dmg := damage
 	if target is BattleUnit:
-		dmg = maxi(1, int(round(float(dmg) * affinity_multiplier(kind, target.kind))))
+		var mult := affinity_multiplier(kind, target.kind)
+		dmg = maxi(1, int(round(float(dmg) * mult)))
+		if team == Team.PLAYER and _note_cd <= 0.0 and mult != GddBalance.MULT_NEUTRAL:
+			var atk: String = str(DISPLAY[kind]["affinity"])
+			var def: String = str(DISPLAY[target.kind]["affinity"])
+			if mult >= GddBalance.MULT_SUPER:
+				combat_note.emit("SE! %s > %s" % [atk, def])
+			else:
+				combat_note.emit("resist %s vs %s" % [atk, def])
+			_note_cd = 2.4
 	elif kind == Kind.MELEE and target is BattleTower:
 		dmg += 4
 	if uses_projectile:
