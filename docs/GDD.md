@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3.5 (09e20a3 — tutor/bounty/labels PASS; affinity toast pending)  
+**Version:** 1.3.6 (6736f0c — affinity SE/resist still FAIL)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -259,22 +259,28 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 
 ---
 
+---
+
 ## Appendix B — Kernel Must QA (latest)
 
-### TesterBot 2026-09-21 · tip `20b1dc9`
-**Must #1: Done** — Campaign L1 pacing PASS (≥45–60s).
+### Must #1 — Done (tip `20b1dc9`)
+Campaign L1 pacing PASS.
 
-### TesterBot 2026-09-21 · tip `09e20a3` · tunnel liberal-configuration-css-appraisal
-Visibility recheck (do **not** stamp Must #2–4 Done yet):
+### Visibility — tip `09e20a3`
+Tutor / bounty toast / ASCII 1–4 labels: **Verified PASS**.
+
+### Affinity SE/resist — tip `6736f0c` · tunnel councils-tuesday-supposed-topic
+**Still FAIL** — neither SE nor resist combat toast seen on Practice path (group-check fix did not surface in play).
 
 | Item | Status |
 |------|--------|
-| Soft tutor (`Tutor:` prefix) | **Verified PASS** |
-| Kill bounty toast | **Verified PASS** |
-| ASCII 1–4 spawn labels | **Verified PASS** |
-| Affinity SE / resist combat toasts | **FAIL** — legend only; needs `SE!` / resist combat feedback |
+| Must #1 Early Grace | **Done** |
+| Soft tutor | Verified PASS |
+| Kill bounty toast | Verified PASS |
+| ASCII 1–4 labels | Verified PASS |
+| Affinity combat toasts | **Implemented · pending QA** (FAIL on `6736f0c`) |
 
-**GDD stamp rule:** Must #1 Done. Tutor / bounty / labels noted verified. Affinity stays **Implemented · pending QA**. Must #2–4 block as a set stays open until affinity passes.
+**Do not stamp Must #2–4 Done** until affinity SE/resist passes in play.
 
 
 ## Appendix C — Economy tables (ResearchBot lock, for CodeBot)
@@ -454,6 +460,7 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 ## Changelog
 
+- **v1.3.6 (2026-09-21):** tip `6736f0c` affinity SE/resist still FAIL in Practice; #2–4 not Done.
 - **v1.3.5 (2026-09-21):** tip `09e20a3` — tutor/bounty/labels verified; affinity SE/resist toast FAIL; #2–4 not Done.
 - **v1.3.4 (2026-09-21):** TesterBot tip `20b1dc9` — Must #1 **Done**. Follow-ups: bounty/tutor/affinity visibility + glyph labels.
 - **v1.3.3 (2026-09-21):** TesterBot tip `3e24ccf` FAIL — Must #1 Verify→harden (Campaign L1 <30s).
