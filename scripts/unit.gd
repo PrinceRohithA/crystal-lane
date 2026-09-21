@@ -173,7 +173,8 @@ func _process(delta: float) -> void:
 	var pace := move_speed * _slow * _haste
 	if target != null and _distance_to(target) <= attack_range:
 		_try_attack(target)
-		if uses_projectile and not (target is BattleTower) and _distance_to(target) < attack_range * 0.52:
+		var not_tower := target.is_in_group("units")
+		if uses_projectile and not_tower and _distance_to(target) < attack_range * 0.52:
 			var back := -1.0 if team == Team.PLAYER else 1.0
 			_moving = true
 			position.x += back * pace * 0.65 * delta
@@ -266,6 +267,14 @@ func _ally_blocking() -> bool:
 	return false
 
 
+func _notify_affinity(text: String) -> void:
+	# Signal path (game connects) + direct group fallback so toast cannot silently drop.
+	combat_note.emit(text)
+	var g := get_tree().get_first_node_in_group("crystal_game")
+	if g != null and g.has_method("_on_combat_note"):
+		g._on_combat_note(text)
+
+
 func _try_attack(target: Node2D) -> void:
 	if _cd > 0.0:
 		return
@@ -276,18 +285,21 @@ func _try_attack(target: Node2D) -> void:
 		tw.tween_property(_visual, "position:x", lunge, 0.08)
 		tw.tween_property(_visual, "position:x", 0.0, 0.12)
 	var dmg := damage
-	if target is BattleUnit:
-		var mult := affinity_multiplier(kind, target.kind)
+	# Do NOT use `is BattleUnit` — class_name checks often fail on script.new() units in HTML5.
+	var hit_unit: bool = target != null and is_instance_valid(target) and target.is_in_group("units")
+	if hit_unit:
+		var def_kind: int = int(target.kind)
+		var mult := affinity_multiplier(kind, def_kind)
 		dmg = maxi(1, int(round(float(dmg) * mult)))
-		if team == Team.PLAYER and _note_cd <= 0.0 and mult != GddBalance.MULT_NEUTRAL:
+		if team == Team.PLAYER and _note_cd <= 0.0 and absf(mult - GddBalance.MULT_NEUTRAL) > 0.05:
 			var atk: String = str(DISPLAY[kind]["affinity"])
-			var def: String = str(DISPLAY[target.kind]["affinity"])
-			if mult >= GddBalance.MULT_SUPER:
-				combat_note.emit("SE! %s > %s" % [atk, def])
+			var def: String = str(DISPLAY[def_kind]["affinity"])
+			if mult >= GddBalance.MULT_SUPER - 0.05:
+				_notify_affinity("SE! %s > %s" % [atk, def])
 			else:
-				combat_note.emit("resist %s vs %s" % [atk, def])
-			_note_cd = 2.4
-	elif kind == Kind.MELEE and target is BattleTower:
+				_notify_affinity("resist %s vs %s" % [atk, def])
+			_note_cd = 1.6
+	elif kind == Kind.MELEE and target != null and target.has_method("take_damage") and not hit_unit:
 		dmg += 4
 	if uses_projectile:
 		var proj := preload("res://scripts/projectile.gd").new()
