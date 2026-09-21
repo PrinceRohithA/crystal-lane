@@ -19,7 +19,7 @@ const LANE_RIGHT := 1120.0
 const PULSE_LEFT := LANE_LEFT + (LANE_RIGHT - LANE_LEFT) / 3.0
 const PULSE_RIGHT := LANE_RIGHT - (LANE_RIGHT - LANE_LEFT) / 3.0
 
-const START_GOLD := 130
+const START_GOLD := 160
 const GOLD_PER_SEC := 16.0
 const MAX_ALIVE := 8
 
@@ -31,13 +31,14 @@ const SPELL_DAMAGE := 24
 const SPELL_SLOW := 0.45
 const SPELL_SLOW_TIME := 2.8
 
-const ENEMY_FIRST_SPAWN := 18.0
-const ENEMY_INTERVAL := 10.0
+# Practice: delay free waves so affinity drill can finish before Victory.
+const ENEMY_FIRST_SPAWN := 50.0
+const ENEMY_INTERVAL := 12.0
 const ENEMY_INTERVAL_MIN := 3.4
-const ENEMY_RAMP_AFTER := 90.0
-const ENEMY_EARLY_SOFT_CAP := 1
-const ENEMY_EARLY_STAT_SCALE := 0.38
-const ENEMY_EARLY_SPEED_SCALE := 0.70
+const ENEMY_RAMP_AFTER := 100.0
+const ENEMY_EARLY_SOFT_CAP := 2
+const ENEMY_EARLY_STAT_SCALE := 0.42
+const ENEMY_EARLY_SPEED_SCALE := 0.65
 
 const KILL_BOUNTY := 15
 const TUTOR_WINDOW := 48.0
@@ -61,6 +62,7 @@ var _next_tutor_at: float = 0.9
 var _toast_busy_until: float = 0.0
 var _silence_bounty_toast: bool = false
 var _affinity_toast_cd: float = 0.0
+var _drill_spawned: bool = false
 
 var player_tower
 var enemy_tower
@@ -115,6 +117,11 @@ func _ready() -> void:
 	enemy_tower.setup(TowerScript.Team.ENEMY, ENEMY_TOWER_POS)
 	enemy_tower.destroyed.connect(_on_enemy_tower_down)
 	enemy_tower.hp_changed.connect(_on_enemy_hp)
+	if not campaign and enemy_tower.has_method("setup"):
+		# Extra red HP so Victory does not race the resist path.
+		if "max_hp" in enemy_tower:
+			enemy_tower.max_hp = int(enemy_tower.max_hp * 1.8)
+			enemy_tower.hp = enemy_tower.max_hp
 
 	if campaign:
 		_waves = WaveDirectorScript.new()
@@ -129,10 +136,31 @@ func _ready() -> void:
 		_enemy_timer.timeout.connect(_on_enemy_timer)
 		add_child(_enemy_timer)
 		_enemy_timer.start()
+		call_deferred("_spawn_affinity_drill")
 
 	if hud.has_method("bind_game"):
 		hud.bind_game(self)
 	call_deferred("_emit_initial_state")
+
+
+func _spawn_affinity_drill() -> void:
+	if campaign or _drill_spawned or is_over:
+		return
+	_drill_spawned = true
+	# Mid-lane soft Stone Tank for SE (press 2), then Strike Melee for resist (press 1).
+	var tank := _spawn_unit_at(UnitScript.Team.ENEMY, UnitScript.Kind.TANK, Vector2(780, LANE_Y))
+	if tank:
+		tank.max_hp = 40
+		tank.hp = 40
+		tank.damage = 1
+		tank.move_speed *= 0.35
+	var melee := _spawn_unit_at(UnitScript.Team.ENEMY, UnitScript.Kind.MELEE, Vector2(920, LANE_Y + 10))
+	if melee:
+		melee.max_hp = 36
+		melee.hp = 36
+		melee.damage = 1
+		melee.move_speed *= 0.35
+	_emit_toast("Affinity drill: press 2 vs Tank (SE), then 1 vs Melee (resist)", 4.0)
 
 
 func _reset_economy() -> void:
@@ -150,6 +178,7 @@ func _reset_economy() -> void:
 	_toast_busy_until = 0.0
 	_silence_bounty_toast = false
 	_affinity_toast_cd = 0.0
+	_drill_spawned = false
 
 
 func restart_match() -> void:
@@ -168,8 +197,6 @@ func _emit_initial_state() -> void:
 		hud.set_enemy_hp(enemy_tower.hp, TowerScript.MAX_HP)
 	if campaign:
 		_emit_toast("Campaign L%d - mana only" % GameState.selected_level)
-	else:
-		_emit_toast("Practice: 2 Melee vs Stone Tank = SE toast")
 
 
 func _process(delta: float) -> void:
@@ -275,15 +302,7 @@ func _on_enemy_timer() -> void:
 	_enemy_timer.wait_time = _next_enemy_interval()
 	var kind: int
 	if _match_time < ENEMY_RAMP_AFTER:
-		# Include Stone Tank early so Melee SE path is testable before 90s.
-		var early := [
-			UnitScript.Kind.TANK,
-			UnitScript.Kind.MELEE,
-			UnitScript.Kind.TANK,
-			UnitScript.Kind.RANGED,
-			UnitScript.Kind.MELEE,
-			UnitScript.Kind.SUPPORT,
-		]
+		var early := [UnitScript.Kind.TANK, UnitScript.Kind.MELEE, UnitScript.Kind.TANK, UnitScript.Kind.RANGED, UnitScript.Kind.MELEE, UnitScript.Kind.SUPPORT]
 		kind = early[(_enemy_spawns - 1) % early.size()]
 	else:
 		var late := [UnitScript.Kind.MELEE, UnitScript.Kind.TANK, UnitScript.Kind.RANGED, UnitScript.Kind.MELEE, UnitScript.Kind.SUPPORT]
@@ -308,19 +327,24 @@ func _enemy_alive_count() -> int:
 
 
 func _spawn_unit(team: int, kind: int) -> void:
-	var unit := UnitScript.new()
-	_units_root.add_child(unit)
 	var x := PLAYER_SPAWN_X if team == UnitScript.Team.PLAYER else ENEMY_SPAWN_X
 	var y := LANE_Y + randf_range(-14.0, 14.0)
+	_spawn_unit_at(team, kind, Vector2(x, y))
+
+
+func _spawn_unit_at(team: int, kind: int, pos: Vector2):
+	var unit := UnitScript.new()
+	_units_root.add_child(unit)
 	var tower: Node2D = enemy_tower if team == UnitScript.Team.PLAYER else player_tower
-	unit.setup(team, kind, Vector2(x, y), tower)
+	unit.setup(team, kind, pos, tower, self)
 	unit.died.connect(_on_unit_died)
 	unit.combat_note.connect(_on_combat_note)
-	if team == UnitScript.Team.ENEMY and (not campaign) and _match_time < ENEMY_RAMP_AFTER:
+	if team == UnitScript.Team.ENEMY and (not campaign) and _match_time < ENEMY_RAMP_AFTER and not _drill_spawned:
 		unit.max_hp = maxi(8, int(round(float(unit.max_hp) * ENEMY_EARLY_STAT_SCALE)))
 		unit.hp = unit.max_hp
 		unit.damage = maxi(1, int(round(float(unit.damage) * ENEMY_EARLY_STAT_SCALE)))
 		unit.move_speed *= ENEMY_EARLY_SPEED_SCALE
+	return unit
 
 
 func _on_combat_note(text: String) -> void:
@@ -328,8 +352,8 @@ func _on_combat_note(text: String) -> void:
 		return
 	if _affinity_toast_cd > 0.0:
 		return
-	_affinity_toast_cd = 1.2
-	_emit_toast(text, 3.2)
+	_affinity_toast_cd = 1.0
+	_emit_toast(text, 3.5)
 
 
 func _on_unit_died(unit) -> void:
