@@ -17,6 +17,9 @@ var _spawn_btns: Array[Button] = []
 var _spell_btn: Button
 var _end_panel: Control
 var _end_title: Label
+var _end_body: Label
+var _hint2: Label
+var _top_hint: Label
 var _toast_time: float = 0.0
 var _font: Font
 var _font_title: Font
@@ -27,6 +30,26 @@ func bind_game(p_game: Node) -> void:
 	game.economy_changed.connect(_on_economy)
 	game.toast_requested.connect(show_toast)
 	game.match_over.connect(_on_match_over)
+	_apply_mode_copy()
+
+
+func _campaign() -> bool:
+	return game != null and bool(game.get("campaign"))
+
+
+func _apply_mode_copy() -> void:
+	if _hint2 == null:
+		return
+	if _campaign():
+		_hint2.text = "Mana deploys + Pulse. Clear waves to win."
+		if _top_hint:
+			_top_hint.text = "1–4 deploy (mana)  ·  Space Type Pulse  ·  Stone > Strike · Mind · Bloom (GDD)"
+		if _gold_label:
+			_gold_label.text = "Campaign"
+	else:
+		_hint2.text = "Kills +15 gold. Mana is Type Pulse."
+		if _top_hint:
+			_top_hint.text = "1 Tank · 2 Melee · 3 Ranged · 4 Support  ·  Space Pulse  ·  Stone/Strike/Mind/Bloom"
 
 
 func _ready() -> void:
@@ -68,7 +91,10 @@ func show_toast(text: String) -> void:
 
 func _on_economy(gold: int, mana: float, max_mana: float) -> void:
 	if _gold_label:
-		_gold_label.text = "Gold  %d" % gold
+		if _campaign():
+			_gold_label.text = "L%d" % GameState.selected_level
+		else:
+			_gold_label.text = "Gold  %d" % gold
 	if _mana_bar:
 		_mana_bar.max_value = max_mana
 		_mana_bar.value = mana
@@ -86,6 +112,11 @@ func _on_match_over(player_won: bool) -> void:
 	else:
 		_end_title.text = "Defeat"
 		_end_title.add_theme_color_override("font_color", Color("8b2e28"))
+	if _end_body:
+		if _campaign():
+			_end_body.text = "R / Enter → Level Select"
+		else:
+			_end_body.text = "R / Enter → Play again"
 	for b in _spawn_btns:
 		b.disabled = true
 	_spell_btn.disabled = true
@@ -99,7 +130,16 @@ func _refresh_buttons() -> void:
 		if _spawn_btns[i] == null:
 			continue
 		var cost: int = game.unit_cost(i)
-		_spawn_btns[i].disabled = full or game.gold < cost
+		var broke: bool
+		if _campaign():
+			broke = game.mana < float(cost)
+		else:
+			broke = game.gold < cost
+		_spawn_btns[i].disabled = full or broke
+		# Refresh cost label for campaign mana
+		var info: Dictionary = UnitScript.DISPLAY[i]
+		var unit: String = "%dg" % cost if not _campaign() else "%dm" % cost
+		_spawn_btns[i].text = "%d  %s\n%s / %s · %s" % [i + 1, info["name"], info["role"], info["affinity"], unit]
 	_spell_btn.disabled = game.mana < game.SPELL_COST
 
 
@@ -162,10 +202,10 @@ func _build_ui() -> void:
 	_mana_label.size = Vector2(236, 20)
 	econ.add_child(_mana_label)
 
-	var hint2 := _make_label("Kills +15 gold. Mana is Type Pulse.", 11, Color("5a5850"))
-	hint2.position = Vector2(12, 72)
-	hint2.size = Vector2(244, 20)
-	econ.add_child(hint2)
+	_hint2 = _make_label("Kills +15 gold. Mana is Type Pulse.", 11, Color("5a5850"))
+	_hint2.position = Vector2(12, 72)
+	_hint2.size = Vector2(244, 20)
+	econ.add_child(_hint2)
 
 	var actions := _nine("res://assets/ui/panel.png", Vector2(292, 600), Vector2(972, 108))
 	root.add_child(actions)
@@ -204,10 +244,10 @@ func _build_ui() -> void:
 	_toast.visible = false
 	root.add_child(_toast)
 
-	var hint := _make_label("1 Tank  ·  2 Melee  ·  3 Ranged  ·  4 Support     Space Type Pulse     Rock > Fighting > Fairy > Psychic", 13, Color("1c2834"))
-	hint.position = Vector2(280, 14)
-	hint.size = Vector2(980, 24)
-	root.add_child(hint)
+	_top_hint = _make_label("1 Tank · 2 Melee · 3 Ranged · 4 Support  ·  Space Pulse  ·  Stone/Strike/Mind/Bloom", 13, Color("1c2834"))
+	_top_hint.position = Vector2(280, 14)
+	_top_hint.size = Vector2(880, 24)
+	root.add_child(_top_hint)
 
 	var menu_btn := _make_button("Menu", Vector2(1180, 12), Vector2(80, 36), "res://assets/ui/grey_button_flat.png")
 	menu_btn.pressed.connect(func() -> void: GameState.go_main_menu())
@@ -223,20 +263,26 @@ func _build_ui() -> void:
 	_end_title.size = Vector2(400, 40)
 	_end_panel.add_child(_end_title)
 
-	var end_body := _make_label("Press R or Enter to play again", 16, Color("1c2834"))
-	end_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	end_body.position = Vector2(0, 78)
-	end_body.size = Vector2(400, 28)
-	_end_panel.add_child(end_body)
+	_end_body = _make_label("Press R or Enter to play again", 16, Color("1c2834"))
+	_end_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_end_body.position = Vector2(0, 78)
+	_end_body.size = Vector2(400, 28)
+	_end_panel.add_child(_end_body)
 
-	var restart := _make_button("Play again", Vector2(120, 130), Vector2(160, 44), "res://assets/ui/green_button_gloss.png")
+	var restart := _make_button("Play again", Vector2(40, 130), Vector2(150, 44), "res://assets/ui/green_button_gloss.png")
 	restart.pressed.connect(func() -> void:
-		if game and game.has_method("restart_match"):
+		if _campaign():
+			GameState.go_level_select()
+		elif game and game.has_method("restart_match"):
 			game.restart_match()
 		else:
 			get_tree().change_scene_to_file("res://scenes/main.tscn")
 	)
 	_end_panel.add_child(restart)
+
+	var to_menu := _make_button("Main menu", Vector2(210, 130), Vector2(150, 44), "res://assets/ui/grey_button_gloss.png")
+	to_menu.pressed.connect(func() -> void: GameState.go_main_menu())
+	_end_panel.add_child(to_menu)
 
 
 func _nine(path: String, pos: Vector2, size: Vector2) -> Control:
