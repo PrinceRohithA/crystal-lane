@@ -40,7 +40,7 @@ const ENEMY_EARLY_STAT_SCALE := 0.38
 const ENEMY_EARLY_SPEED_SCALE := 0.70
 
 const KILL_BOUNTY := 15
-const TUTOR_WINDOW := 42.0
+const TUTOR_WINDOW := 48.0
 
 signal economy_changed(gold: int, mana: float, max_mana: float)
 signal toast_requested(text: String)
@@ -57,7 +57,7 @@ var _match_time: float = 0.0
 var _did_spawn: bool = false
 var _did_pulse: bool = false
 var _tutor_step: int = 0
-var _next_tutor_at: float = 1.6
+var _next_tutor_at: float = 0.9
 var _toast_busy_until: float = 0.0
 var _silence_bounty_toast: bool = false
 
@@ -142,7 +142,7 @@ func _reset_economy() -> void:
 	_did_spawn = false
 	_did_pulse = false
 	_tutor_step = 0
-	_next_tutor_at = 1.6
+	_next_tutor_at = 0.9
 	_toast_busy_until = 0.0
 	_silence_bounty_toast = false
 
@@ -162,7 +162,7 @@ func _emit_initial_state() -> void:
 	if hud.has_method("set_enemy_hp"):
 		hud.set_enemy_hp(enemy_tower.hp, TowerScript.MAX_HP)
 	if campaign:
-		_emit_toast("Campaign L%d — mana only" % GameState.selected_level)
+		_emit_toast("Campaign L%d - mana only" % GameState.selected_level)
 
 
 func _process(delta: float) -> void:
@@ -249,7 +249,7 @@ func try_cast_type_pulse() -> void:
 	_did_pulse = true
 	var bounty := gold - gold_before
 	if hit == 0:
-		_emit_toast("Type Pulse — no enemies in mid-lane")
+		_emit_toast("Type Pulse - no enemies in mid-lane")
 	elif not campaign and bounty > 0:
 		_emit_toast("Type Pulse! +%d gold" % bounty)
 	else:
@@ -299,11 +299,19 @@ func _spawn_unit(team: int, kind: int) -> void:
 	var tower: Node2D = enemy_tower if team == UnitScript.Team.PLAYER else player_tower
 	unit.setup(team, kind, Vector2(x, y), tower)
 	unit.died.connect(_on_unit_died)
+	if unit.has_signal("combat_note"):
+		unit.combat_note.connect(_on_combat_note)
 	if team == UnitScript.Team.ENEMY and (not campaign) and _match_time < ENEMY_RAMP_AFTER:
 		unit.max_hp = maxi(8, int(round(float(unit.max_hp) * ENEMY_EARLY_STAT_SCALE)))
 		unit.hp = unit.max_hp
 		unit.damage = maxi(1, int(round(float(unit.damage) * ENEMY_EARLY_STAT_SCALE)))
 		unit.move_speed *= ENEMY_EARLY_SPEED_SCALE
+
+
+func _on_combat_note(text: String) -> void:
+	if is_over:
+		return
+	_emit_toast(text, 2.6)
 
 
 func _on_unit_died(unit) -> void:
@@ -316,7 +324,7 @@ func _on_unit_died(unit) -> void:
 	gold += KILL_BOUNTY
 	economy_changed.emit(gold, mana, MAX_MANA)
 	if not _silence_bounty_toast:
-		_emit_toast("+%d gold" % KILL_BOUNTY)
+		_emit_toast("+%d gold (kill bounty)" % KILL_BOUNTY, 3.0)
 
 
 func _emit_toast(text: String, hold: float = 1.8) -> void:
@@ -334,19 +342,19 @@ func _maybe_tutor() -> void:
 		match _tutor_step:
 			0:
 				if not _did_spawn:
-					tip = "1–4 spend mana to deploy" if campaign else "Press 1–4 to train a unit"
+					tip = "Tutor: press 1-4 to deploy" if not campaign else "Tutor: 1-4 spend mana to deploy"
 			1:
 				if not _did_spawn:
-					tip = "1 Tank  ·  2 Melee  ·  3 Ranged  ·  4 Support"
+					tip = "Tutor: 1 Tank  2 Melee  3 Ranged  4 Support"
 			2:
 				if not _did_pulse:
-					tip = "Space — Type Pulse (middle lane)"
+					tip = "Tutor: Space = Type Pulse (middle lane)"
 		_tutor_step += 1
 	if tip == "":
 		_next_tutor_at = _match_time + 4.0
 		return
-	_emit_toast(tip, 2.8)
-	_next_tutor_at = _match_time + 6.0
+	_emit_toast(tip, 3.2)
+	_next_tutor_at = _match_time + 7.0
 
 
 func _on_level_cleared() -> void:
