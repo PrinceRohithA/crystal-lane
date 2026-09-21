@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3.3 (tip 3e24ccf QA — Must #1 still FAIL)  
+**Version:** 1.3.4 (Must #1 Done on tip 20b1dc9)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -255,20 +255,22 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 
 ---
 
+---
+
 ## Appendix B — Kernel Must QA (latest)
 
-### TesterBot 2026-09-21 · tip `3e24ccf` · tunnel validation-period-suspension-competitions
-**Verdict: FAIL** — Must #1 pacing.
+### TesterBot 2026-09-21 · tip `20b1dc9` · tunnel electron-reforms-march-louisiana
+**Must #1: PASS / Done.** Campaign L1 blue survived past 60s passive (~120s to defeat). Active pressure can still lose around ~60s — within bar.
 
 | Must | Status |
 |------|--------|
-| #1 Early Grace / Pressure Curve | **Verify → harden** — Campaign L1 blue dies before ~30s (need ~45–60s) |
-| #2 Soft Tutor | Not reached (dies too fast) |
-| #3 Kill Bounty | OK in Practice |
-| #4 Affinity | (prior partial; not re-stamped Done) |
+| #1 Early Grace / Pressure Curve | **Done** (tip `20b1dc9`) |
+| #2 Soft Tutor | Open follow-up — visibility / not fully verified |
+| #3 Kill Bounty | Open follow-up — feedback visibility |
+| #4 Affinity | Open follow-up — feedback visibility |
+| HUD | Garbled glyph labels on 1–4 — polish open |
 
-Also OK: Pulse, Practice Victory reachable, end-screen Menu/Select, HUD mostly OK (some 1–4 glyph ambiguity).  
-**CodeBot:** harden Campaign Early Grace again before next export. Do not stamp Must #1 Done.
+No further Grace harden needed for Must #1. Prior FAIL on `3e24ccf` superseded.
 
 
 ## Appendix C — Economy tables (ResearchBot lock, for CodeBot)
@@ -438,7 +440,7 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| P0 Early Grace | In tip | Softer waves on polish |
+| P0 Early Grace | **Done** | Must #1 PASS tip `20b1dc9` |
 | P1 Menu / L1–3 | **Done** | Tip includes menu + campaign L1–3 |
 | P2 Waves + Barracks | **Done** | P05–P08 unlockable; mana-only campaign + wave director |
 | P3 Type chart | **Partial→wired** | 8-type chart live for Stone/Strike/Mind/Bloom starters |
@@ -448,6 +450,7 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 ## Changelog
 
+- **v1.3.4 (2026-09-21):** TesterBot tip `20b1dc9` — Must #1 **Done**. Follow-ups: bounty/tutor/affinity visibility + glyph labels.
 - **v1.3.3 (2026-09-21):** TesterBot tip `3e24ccf` FAIL — Must #1 Verify→harden (Campaign L1 <30s).
 - **v1.3.2 (2026-09-21):** CodeBot P1–P3 on polish `63f7877`; P4–P6 still open.
 - **v1.3.1 (2026-09-20):** Tonight handoff — full GDD + named asset scouting checklist; stop line for build resume tomorrow.
