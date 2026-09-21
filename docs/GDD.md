@@ -1,6 +1,6 @@
 # Crystal Lane — Game Design Document
 
-**Version:** 1.3.2 (P1–P3 landed on tip 63f7877 · P4–P6 open)  
+**Version:** 1.3.3 (tip 3e24ccf QA — Must #1 still FAIL)  
 **Owner:** DocumentBot  
 **Date:** 2026-09-20 (Asia/Calcutta)  
 **Repo:** https://github.com/PrinceRohithA/crystal-lane  
@@ -253,22 +253,23 @@ Official Pokémon IP · capture/Pokédex · multiplayer · multi-lane · inventi
 
 ---
 
-## Appendix B — Kernel Must QA (TesterBot 2026-09-20)
-
-**Tunnel Must-build verdict: FAIL** (pacing blocks stamp).
-
-| Must | Feature | Status |
-|------|---------|--------|
-| #1 | Early Grace / Pressure Curve | **Verify → harden** — FAIL: blue dies ~10–20s (sometimes ~3s), need 45–60s |
-| #2 | Soft Tutor Toasts | Implemented · pending QA — NOT VERIFIED (dies before ~42s tutor) |
-| #3 | Kill Bounty Gold | Implemented · pending QA — Partial (HUD +15, no toast) |
-| #4 | Affinity Matchups | Implemented · pending QA — Partial (legend only) |
-
-Roles 1–4 + load: PASS. Type Pulse: PASS-ish.  
-**CodeBot:** tighten Early Grace again before re-export. Campaign P1+ continues in parallel; kernel pacing remains P0 gate for tutor/Must verification.
-
-
 ---
+
+## Appendix B — Kernel Must QA (latest)
+
+### TesterBot 2026-09-21 · tip `3e24ccf` · tunnel validation-period-suspension-competitions
+**Verdict: FAIL** — Must #1 pacing.
+
+| Must | Status |
+|------|--------|
+| #1 Early Grace / Pressure Curve | **Verify → harden** — Campaign L1 blue dies before ~30s (need ~45–60s) |
+| #2 Soft Tutor | Not reached (dies too fast) |
+| #3 Kill Bounty | OK in Practice |
+| #4 Affinity | (prior partial; not re-stamped Done) |
+
+Also OK: Pulse, Practice Victory reachable, end-screen Menu/Select, HUD mostly OK (some 1–4 glyph ambiguity).  
+**CodeBot:** harden Campaign Early Grace again before next export. Do not stamp Must #1 Done.
+
 
 ## Appendix C — Economy tables (ResearchBot lock, for CodeBot)
 
@@ -447,6 +448,7 @@ Full per-level enemy lists / recommended answers: `research-roster-curriculum-v1
 
 ## Changelog
 
+- **v1.3.3 (2026-09-21):** TesterBot tip `3e24ccf` FAIL — Must #1 Verify→harden (Campaign L1 <30s).
 - **v1.3.2 (2026-09-21):** CodeBot P1–P3 on polish `63f7877`; P4–P6 still open.
 - **v1.3.1 (2026-09-20):** Tonight handoff — full GDD + named asset scouting checklist; stop line for build resume tomorrow.
 - **v1.3 (2026-09-20):** Roster 20+20+2 + L1–20 curriculum (App E/F); unlock soft-ceiling `min(900, round(40*1.22^k))` resolves 21.7k vs 6.5k; wave counts follow App D.
