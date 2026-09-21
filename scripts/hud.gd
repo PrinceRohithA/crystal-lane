@@ -13,6 +13,7 @@ var _enemy_hp: Label
 var _player_bar: TextureProgressBar
 var _enemy_bar: TextureProgressBar
 var _toast: Label
+var _toast_panel: Panel
 var _spawn_btns: Array[Button] = []
 var _spell_btn: Button
 var _end_panel: Control
@@ -43,13 +44,13 @@ func _apply_mode_copy() -> void:
 	if _campaign():
 		_hint2.text = "Mana deploys + Pulse. Clear waves to win."
 		if _top_hint:
-			_top_hint.text = "1–4 deploy (mana)  ·  Space Type Pulse  ·  Stone > Strike · Mind · Bloom (GDD)"
+			_top_hint.text = "Keys 1-4 deploy (mana)  |  Space = Type Pulse  |  Stone>Strike>Bloom>Mind>Stone"
 		if _gold_label:
 			_gold_label.text = "Campaign"
 	else:
-		_hint2.text = "Kills +15 gold. Mana is Type Pulse."
+		_hint2.text = "Enemy kill = +15 gold toast. Mana fuels Type Pulse."
 		if _top_hint:
-			_top_hint.text = "1 Tank · 2 Melee · 3 Ranged · 4 Support  ·  Space Pulse  ·  Stone/Strike/Mind/Bloom"
+			_top_hint.text = "1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  type matchups toast on hit"
 
 
 func _ready() -> void:
@@ -64,6 +65,8 @@ func _process(delta: float) -> void:
 		_toast_time -= delta
 		if _toast_time <= 0.0:
 			_toast.visible = false
+			if _toast_panel:
+				_toast_panel.visible = false
 	_refresh_buttons()
 
 
@@ -86,7 +89,15 @@ func show_toast(text: String) -> void:
 		return
 	_toast.text = text
 	_toast.visible = true
-	_toast_time = 2.8 if text.length() > 22 else 1.6
+	if _toast_panel:
+		_toast_panel.visible = true
+	# Longer hold so bounty / tutor / affinity are readable
+	if text.begins_with("+") or text.find("gold") >= 0 or text.find("Tutor") >= 0 or text.find("SE") >= 0 or text.find("resist") >= 0:
+		_toast_time = 3.2
+	elif text.length() > 28:
+		_toast_time = 3.0
+	else:
+		_toast_time = 2.2
 
 
 func _on_economy(gold: int, mana: float, max_mana: float) -> void:
@@ -114,12 +125,19 @@ func _on_match_over(player_won: bool) -> void:
 		_end_title.add_theme_color_override("font_color", Color("8b2e28"))
 	if _end_body:
 		if _campaign():
-			_end_body.text = "R / Enter → Level Select"
+			_end_body.text = "R / Enter = Level Select"
 		else:
-			_end_body.text = "R / Enter → Play again"
+			_end_body.text = "R / Enter = Play again"
 	for b in _spawn_btns:
 		b.disabled = true
 	_spell_btn.disabled = true
+
+
+func _btn_label(kind: int, cost: int) -> String:
+	var info: Dictionary = UnitScript.DISPLAY[kind]
+	var unit: String = "%dg" % cost if not _campaign() else "%dm" % cost
+	# ASCII-only so Kenney glyphs never box out the key digit
+	return "%d %s\n%s %s  %s" % [kind + 1, info["role"], info["affinity"], info["name"], unit]
 
 
 func _refresh_buttons() -> void:
@@ -136,10 +154,7 @@ func _refresh_buttons() -> void:
 		else:
 			broke = game.gold < cost
 		_spawn_btns[i].disabled = full or broke
-		# Refresh cost label for campaign mana
-		var info: Dictionary = UnitScript.DISPLAY[i]
-		var unit: String = "%dg" % cost if not _campaign() else "%dm" % cost
-		_spawn_btns[i].text = "%d  %s\n%s / %s · %s" % [i + 1, info["name"], info["role"], info["affinity"], unit]
+		_spawn_btns[i].text = _btn_label(i, cost)
 	_spell_btn.disabled = game.mana < game.SPELL_COST
 
 
@@ -159,7 +174,7 @@ func _build_ui() -> void:
 	_player_bar = _hp_bar("res://assets/ui/blue_bar.png", Vector2(28, 68), Vector2(244, 16))
 	if _player_bar:
 		root.add_child(_player_bar)
-	_player_hp = _panel_label("Blue  —", Vector2(28, 44), 14, Color("2d6eae"), false)
+	_player_hp = _panel_label("Blue  --", Vector2(28, 44), 14, Color("2d6eae"), false)
 	root.add_child(_player_hp)
 
 	var hp_right := _nine("res://assets/ui/panel.png", Vector2(996, 42), Vector2(268, 52))
@@ -167,7 +182,7 @@ func _build_ui() -> void:
 	_enemy_bar = _hp_bar("res://assets/ui/red_bar.png", Vector2(1008, 68), Vector2(244, 16))
 	if _enemy_bar:
 		root.add_child(_enemy_bar)
-	_enemy_hp = _panel_label("Red  —", Vector2(1008, 44), 14, Color("b33d32"), false)
+	_enemy_hp = _panel_label("Red  --", Vector2(1008, 44), 14, Color("b33d32"), false)
 	_enemy_hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_enemy_hp.size = Vector2(244, 24)
 	root.add_child(_enemy_hp)
@@ -202,7 +217,7 @@ func _build_ui() -> void:
 	_mana_label.size = Vector2(236, 20)
 	econ.add_child(_mana_label)
 
-	_hint2 = _make_label("Kills +15 gold. Mana is Type Pulse.", 11, Color("5a5850"))
+	_hint2 = _make_label("Enemy kill = +15 gold toast. Mana fuels Type Pulse.", 11, Color("5a5850"))
 	_hint2.position = Vector2(12, 72)
 	_hint2.size = Vector2(244, 20)
 	econ.add_child(_hint2)
@@ -219,32 +234,39 @@ func _build_ui() -> void:
 	]
 	for i in kinds.size():
 		var kind: int = kinds[i]
-		var info: Dictionary = UnitScript.DISPLAY[kind]
 		var cost: int = int(UnitScript.COST[kind])
-		var label := "%d  %s\n%s / %s · %dg" % [i + 1, info["name"], info["role"], info["affinity"], cost]
-		var btn := _make_button(label, Vector2(12 + i * 178, 14), Vector2(168, 80), btn_colors[i])
+		var btn := _make_button(_btn_label(kind, cost), Vector2(12 + i * 178, 14), Vector2(168, 80), btn_colors[i])
 		var icon := CrystalArt.tex(CrystalArt.unit_body_path(0, kind))
 		if icon:
 			btn.icon = icon
 			btn.expand_icon = true
-			btn.add_theme_constant_override("icon_max_width", 36)
+			btn.add_theme_constant_override("icon_max_width", 32)
 		var captured := kind
 		btn.pressed.connect(func() -> void: game.try_spawn_player(captured))
 		actions.add_child(btn)
 		_spawn_btns.append(btn)
 
-	_spell_btn = _make_button("Type Pulse\nSpace · 55 mana", Vector2(724, 14), Vector2(232, 80), "res://assets/ui/yellow_button_gloss.png")
+	_spell_btn = _make_button("Type Pulse\nSpace  55 mana", Vector2(724, 14), Vector2(232, 80), "res://assets/ui/yellow_button_gloss.png")
 	_spell_btn.pressed.connect(func() -> void: game.try_cast_type_pulse())
 	actions.add_child(_spell_btn)
 
-	_toast = _make_label("", 22, Color("1c2834"))
+	_toast_panel = Panel.new()
+	_toast_panel.position = Vector2(340, 100)
+	_toast_panel.size = Vector2(600, 56)
+	_toast_panel.visible = false
+	_toast_panel.add_theme_stylebox_override("panel", _stylebox(Color("fff8e0"), Color("1c2834")))
+	_toast_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_toast_panel)
+
+	_toast = _make_label("", 24, Color("1c2834"))
 	_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast.position = Vector2(280, 112)
-	_toast.size = Vector2(720, 44)
+	_toast.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_toast.position = Vector2(340, 100)
+	_toast.size = Vector2(600, 56)
 	_toast.visible = false
 	root.add_child(_toast)
 
-	_top_hint = _make_label("1 Tank · 2 Melee · 3 Ranged · 4 Support  ·  Space Pulse  ·  Stone/Strike/Mind/Bloom", 13, Color("1c2834"))
+	_top_hint = _make_label("1 Tank  2 Melee  3 Ranged  4 Support  |  Space Pulse  |  type matchups toast on hit", 13, Color("1c2834"))
 	_top_hint.position = Vector2(280, 14)
 	_top_hint.size = Vector2(880, 24)
 	root.add_child(_top_hint)
@@ -350,9 +372,8 @@ func _make_button(text: String, pos: Vector2, size: Vector2, tex_path: String = 
 	b.text = text
 	b.position = pos
 	b.size = size
-	if _font:
-		b.add_theme_font_override("font", _font)
-	b.add_theme_font_size_override("font_size", 13)
+	# Default theme font for digits — Kenney Future Narrow often lacks clear 1-4 glyphs
+	b.add_theme_font_size_override("font_size", 14)
 	b.add_theme_color_override("font_color", Color("1c2834"))
 	var tex := CrystalArt.tex(tex_path) if tex_path != "" else null
 	if tex:
